@@ -173,6 +173,13 @@ class DataSyncController extends Controller
 
             foreach ($mysqlUsers as $user) {
 
+                //------------------------------------
+                // UNIQUE ID
+                //------------------------------------
+                $uniqueId = !empty($user->id)
+                    ? 'ACT' . str_pad($user->id, 6, '0', STR_PAD_LEFT)
+                    : '';
+
                 $departmentId = null;
 
                 if ($user->otherActivityCity) {
@@ -188,28 +195,147 @@ class DataSyncController extends Controller
                     ? json_encode(array_map('trim', explode(',', $user->closeDaysname)))
                     : json_encode([]);
 
-                // ✅ Insert / Update data to PGSQL
-                DB::connection('pgsql')
-                    ->table('sightseeing.activity_masters')
-                    ->updateOrInsert(
-                        ['id' => $user->id],  // Match by primary key
+                // ------------------------------------------------------
+                // ✅ FETCH ACTIVITY RATE JSON FROM dmcotheractivityrate
+                // ------------------------------------------------------
+                $rateData = DB::connection('mysql')
+                    ->table('dmcotheractivityrate')
+                    ->where('serviceid', $user->id)
+                    ->get();
+
+
+                //------------------------------------
+                // HEADER
+                //------------------------------------
+                $header = [
+                    "RateChangeLog" => [
                         [
-                            'id'           => $user->id,
-                            'Type'           => "Activity",
-                            'ServiceName'          => $user->otherActivityName,
-                            'Destination'  => $departmentId,
-                            'Default'  => $user->isDefault,
-                            'Supplier'  => $user->supplierId,
-                            'Status'  => $user->status,
-                            'Description'  => $user->otherActivityDetail,
-                            'RPK'  => $user->id,
-                            'ClosingDay'  => $closeDaysnameJson,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            "ChangeDateTime"   => "",
+                            "ChangedByID"      => "",
+                            "ChangeByValue"    => "",
+                            "ChangeSetDetail"  => [
+                                [
+                                    "ChangeFrom" => "",
+                                    "ChangeTo"   => ""
+                                ]
+                            ]
                         ]
-                    );
+                    ]
+                ];
+
+                // Build ServiceCost Array
+                $serviceCost = [];
+                $rateDetails = [];
+                foreach ($rateData as $rate) {
+
+                    // Supplier Name
+                    $supplierName = "";
+                    if (!empty($rate->supplierId)) {
+                        $sup = DB::connection('mysql')
+                            ->table('suppliersmaster')
+                            ->where('id', $rate->supplierId)
+                            ->first();
+
+                        $supplierName = $sup->name ?? "";
+                    }
+
+
+                    $serviceCost[] = [
+                        "UpToPax"  => $rate->maxpax ?? "",
+                        "Rounds"   => 1,
+                        "Class"    => 1,
+                        "Duration" => 1,
+                        "Amount"   => $rate->activityCost ?? "",
+                        "Remarks"  => $rate->details ?? "",
+                    ];
+
+                    $rateUUID = \Illuminate\Support\Str::uuid()->toString();
+                    $supplierId = $rate->supplierId ?? '';
+
+                    // ------------------------------------------------------
+                    // FINAL JSON FORMAT (NO SLASHES, VALID PGSQL JSON)
+                    // ------------------------------------------------------
+                    $rateDetails  = [
+                        "UniqueID"        => $rateUUID,
+                        "Type"            => "Activity",
+                        "SupplierId"      => $rate->supplierId ?? '',
+                        "SupplierName"    => $supplierName,
+                        "DestinationID"   => $departmentId,
+                        "DestinationName" => $user->otherActivityCity,
+                        "ValidFrom"       => $rate->validFrom ?? "",
+                        "ValidTo"         => $rate->validTo ?? "",
+                        "Service"         => "",
+                        "CurrencyId"      => $rate->currencyId ?? '',
+                        "CurrencyName"    => "",
+                        "ChildCost"       => "",
+                        "ServiceCost"       => $serviceCost,
+                        "TaxSlabId"       => $rate->gstTax ?? "",
+                        "TaxSlabName"     => "",
+                        "TaxSlabVal"      => "",
+                        "TotalCost"       => $rate->activityCost ?? 0,
+                        "Remarks"         => $rate->details ?? "",
+                        "Status"          => 1,
+                        "AddedBy"         => 1,
+                        "UpdatedBy"       => 1,
+                        "AddedDate"       => now(),
+                        "UpdatedDate"     => now(),
+                        "SupplierUID"     => "SUPP" . str_pad($supplierId, 5, '0', STR_PAD_LEFT),
+                        "DestinationUUID" => "DEST" . str_pad($departmentId, 5, '0', STR_PAD_LEFT)
+                    ];
+                }
+
+                //------------------------------------
+                // BUILD RATE JSON
+                //------------------------------------
+                $rateJson = null;
+
+                if (!empty($rateDetails)) {
+
+                    $rateJsonStructure = [
+                        "ActivityId"      => $user->id,
+                        "ActivityUUID"    => $uniqueId,
+                        "ActivityName"    => $user->otherActivityName,
+                        "DestinationID"   => $departmentId,
+                        "DestinationName" => $user->otherActivityCity,
+                        "CompanyId"       => "",
+                        "CompanyName"     => "",
+                        "Header"          => $header,
+                        "Data" => [
+                            [
+                                "Total"       => count($rateDetails),
+                                "RateDetails" => $rateDetails
+                            ]
+                        ]
+                    ];
+
+                    $rateJson = json_encode($rateJsonStructure);
+
+
+                    // ✅ Insert / Update data to PGSQL
+                    DB::connection('pgsql')
+                        ->table('sightseeing.activity_masters')
+                        ->updateOrInsert(
+                            ['id' => $user->id],  // Match by primary key
+                            [
+                                'id'           => $user->id,
+                                'Type'           => "Activity",
+                                'ServiceName'          => $user->otherActivityName,
+                                'Destination'  => $departmentId,
+                                'Default'  => $user->isDefault,
+                                'Supplier'  => $user->supplierId,
+                                'Status'  => $user->status,
+                                'Description'  => $user->otherActivityDetail,
+                                'RPK'  => $user->id,
+                                'ClosingDay'  => $closeDaysnameJson,
+                                'UniqueID'  => $uniqueId,
+                                'RateJson'  => $rateJson,
+                                'AddedBy'     => 1,
+                                'UpdatedBy'     => 1,
+                                'created_at'     => now(),
+                                'updated_at'     => now(),
+                            ]
+                        );
+                }
             }
 
             return [
@@ -580,7 +706,7 @@ class DataSyncController extends Controller
                                             "updated_at"    => now()
                                         ]
                                     );
-                                    ///update
+                                ///update
                                 $startDate->addDay(); // next date
                             }
                         }
@@ -1518,7 +1644,7 @@ class DataSyncController extends Controller
                         ]
                     ];
 
-                    $rateJson = json_encode($rateStructure, JSON_UNESCAPED_UNICODE);
+                    $rateJson = json_encode($rateStructure);
 
                     // Only run if rateDetailsList has data
                     if (!empty($rateDetailsList)) {
