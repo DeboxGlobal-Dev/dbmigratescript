@@ -224,63 +224,406 @@ class DataSyncController extends Controller
         }
     }
 
+    // public function monumentSync()
+    // {
+    //     try {
+    //         // ✅ Read all data from MySQL
+    //         $mysqlUsers = DB::connection('mysql')
+    //             ->table('packagebuilderentrancemaster')
+    //             ->get();
+
+    //         foreach ($mysqlUsers as $user) {
+
+    //             $destinationId = null;
+    //             $destinationName = "";
+
+    //             if ($user->entranceCity) {
+    //                 $destination = DB::connection('mysql')
+    //                     ->table('destinationmaster')
+    //                     ->where('name', $user->entranceCity)
+    //                     ->first();
+
+    //                 $destinationId  = $destination->id ?? null;
+    //                 $destinationName = $destination->name ?? "";
+    //             }
+
+    //             $closeDaysnameJson = !empty($user->closeDaysname)
+    //                 ? json_encode(array_values(array_filter(
+    //                     array_map('trim', explode(',', $user->closeDaysname)),
+    //                     fn($v) => $v !== ""   // remove empty strings
+    //                 )))
+    //                 : json_encode([]);
+
+    //             $uniqueId = !empty($user->id)  ? 'SIGH' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+
+    //             // -------------------------------
+    //             // FETCH MONUMENT RATES
+    //             // -------------------------------
+    //             $rates = DB::connection('mysql')
+    //                 ->table('dmcentrancerate')   // <-- REPLACE IF NEEDED
+    //                 ->where('entranceNameId', $user->id)
+    //                 ->get();
+
+    //             // -------------------------------
+    //             // BUILD HEADER
+    //             // -------------------------------
+    //             $header = [
+    //                 "RateChangeLog" => [
+    //                     [
+    //                         "ChangeDateTime"   => "",
+    //                         "ChangedByID"      => "",
+    //                         "ChangeByValue"    => "",
+    //                         "ChangeSetDetail"  => [
+    //                             [
+    //                                 "ChangeFrom" => "",
+    //                                 "ChangeTo"   => ""
+    //                             ]
+    //                         ]
+    //                     ]
+    //                 ]
+    //             ];
+
+    //             // -------------------------------
+    //         // RateDetails ARRAY
+    //         // -------------------------------
+    //         $rateDetails = [];
+
+    //         foreach ($rates as $r) {
+
+    //             // Supplier Name
+    //             $supplierName = "";
+    //             if (!empty($r->supplierId)) {
+    //                 $sup = DB::connection('mysql')
+    //                     ->table('suppliersmaster')
+    //                     ->where('id', $r->supplierId)
+    //                     ->first();
+
+    //                 $supplierName = $sup->name ?? "";
+    //             }
+
+    //             // Nationality Name
+    //             $nationalityName = ($r->nationality == 1) ? "Local" : "Foreign";
+
+    //             // UUID for each rate entry
+    //             $rateUUID = \Illuminate\Support\Str::uuid()->toString();
+
+    //             $rateDetails[] = [
+    //                     "UniqueID"               => $rateUUID,
+    //                     "SupplierId"             => (int)$r->supplierId,
+    //                     "SupplierName"           => $supplierName,
+    //                     "NationalityId"          => (int)$r->nationality,
+    //                     "NationalityName"        => $nationalityName,
+    //                     "ValidFrom"              => $r->fromDate,
+    //                     "ValidTo"                => $r->toDate,
+    //                     "CurrencyId"             => (int)$r->currencyId,
+    //                     "CurrencyName"           => "",
+    //                     "CurrencyConversionName" => "",
+    //                     "IndianAdultEntFee"      => (string)$r->adultCost,
+    //                     "IndianChildEntFee"      => (string)$r->childCost,
+    //                     "ForeignerAdultEntFee"   => (string)$r->adultCost,
+    //                     "ForeignerChildEntFee"   => (string)$r->childCost,
+    //                     "TaxSlabId"              => (int)$r->gstTax,
+    //                     "TaxSlabName"            => "IT",
+    //                     "TaxSlabVal"             => "0",
+    //                     "TotalCost"              => 0,
+    //                     "Policy"                 => "",
+    //                     "TAC"                    => "",
+    //                     "Remarks"                => "",
+    //                     "Status"                 => (string)$r->status,
+    //                     "AddedBy"                => 0,
+    //                     "UpdatedBy"              => 0,
+    //                     "AddedDate"              => now(),
+    //                     "UpdatedDate"            => now()
+    //                 ];
+    //             }
+
+    //             //----------------------------------------
+    //             // BUILD FINAL RATE JSON STRUCTURE
+    //             //----------------------------------------
+    //             $rateJsonStructure = [
+    //                 "MonumentId"      => $user->id,
+    //                 "MonumentUUID"    => $uniqueId,
+    //                 "MonumentName"    => $user->entranceName,
+    //                 "DestinationID"   => $destinationId,
+    //                 "DestinationName" => $destinationName,
+    //                 "CompanyId"       => "",
+    //                 "CompanyName"     => "",
+    //                 "Header"          => $header,
+    //                 "Data"            => [
+    //                     [
+    //                         "Total"       => count($rateDetails),
+    //                         "RateDetails" => $rateDetails
+    //                     ]
+    //                 ]
+    //             ];
+
+    //             $rateJson = json_encode($rateJsonStructure, JSON_UNESCAPED_UNICODE);
+
+    //             // ✅ Insert / Update data to PGSQL
+    //             DB::connection('pgsql')
+    //                 ->table('sightseeing.monument_master')
+    //                 ->updateOrInsert(
+    //                     ['id' => $user->id],  // Match by primary key
+    //                     [
+    //                         'id'           => $user->id,
+    //                         'MonumentName'          => $user->entranceName,
+    //                         'Destination'  => $destinationId,
+    //                         'TransferType'  => $user->transferType,
+    //                         'Default'  => $user->isDefault,
+    //                         //'Supplier'  => $user->supplierId,
+    //                         'Status'  => $user->status,
+    //                         'RateJson'  =>  $rateJson,
+    //                         //'RPK'  => $user->id,
+    //                         'JsonWeekendDays'  => $closeDaysnameJson,
+    //                         'UniqueID'  => $uniqueId,
+    //                         'AddedBy'     => 1,
+    //                         'UpdatedBy'     => 1,
+    //                         'created_at'     => now(),
+    //                         'updated_at'     => now(),
+    //                     ]
+    //                 );
+    //         }
+
+    //         return [
+    //             'status'  => true,
+    //             'message' => 'Monument Master Data synced successfully'
+    //         ];
+    //     } catch (\Exception $e) {
+    //         return [
+    //             'status'  => false,
+    //             'message' => $e->getMessage(),
+    //         ];
+    //     }
+    // }
+
     public function monumentSync()
     {
         try {
-            // ✅ Read all data from MySQL
             $mysqlUsers = DB::connection('mysql')
                 ->table('packagebuilderentrancemaster')
                 ->get();
 
             foreach ($mysqlUsers as $user) {
 
-                $departmentId = null;
+                //------------------------------------
+                // DESTINATION
+                //------------------------------------
+                $destinationId = null;
+                $destinationName = "";
 
                 if ($user->entranceCity) {
-                    $department = DB::connection('mysql')
+                    $destination = DB::connection('mysql')
                         ->table('destinationmaster')
                         ->where('name', $user->entranceCity)
                         ->first();
 
-                    $departmentId = $department->id ?? null;
+                    $destinationId  = $destination->id ?? null;
+                    $destinationName = $destination->name ?? "";
                 }
 
+                //------------------------------------
+                // CLOSE DAYS JSON
+                //------------------------------------
                 $closeDaysnameJson = !empty($user->closeDaysname)
                     ? json_encode(array_values(array_filter(
                         array_map('trim', explode(',', $user->closeDaysname)),
-                        fn($v) => $v !== ""   // remove empty strings
+                        fn($v) => $v !== ""
                     )))
                     : json_encode([]);
 
-                $uniqueId = !empty($user->id)  ? 'SIGH' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+                //------------------------------------
+                // UNIQUE ID
+                //------------------------------------
+                $uniqueId = !empty($user->id)
+                    ? 'SIGH' . str_pad($user->id, 6, '0', STR_PAD_LEFT)
+                    : '';
 
-                // ✅ Insert / Update data to PGSQL
+                //------------------------------------
+                // FETCH RATES
+                //------------------------------------
+                $rates = DB::connection('mysql')
+                    ->table('dmcentrancerate')
+                    ->where('entranceNameId', $user->id)
+                    ->get();
+
+                //------------------------------------
+                // HEADER
+                //------------------------------------
+                $header = [
+                    "RateChangeLog" => [
+                        [
+                            "ChangeDateTime"   => "",
+                            "ChangedByID"      => "",
+                            "ChangeByValue"    => "",
+                            "ChangeSetDetail"  => [
+                                [
+                                    "ChangeFrom" => "",
+                                    "ChangeTo"   => ""
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+
+                //------------------------------------
+                // BUILD RATE DETAILS (IF ANY)
+                //------------------------------------
+                $rateDetails = [];
+
+                foreach ($rates as $r) {
+
+                    // Supplier Name
+                    $supplierName = "";
+                    if (!empty($r->supplierId)) {
+                        $sup = DB::connection('mysql')
+                            ->table('suppliersmaster')
+                            ->where('id', $r->supplierId)
+                            ->first();
+
+                        $supplierName = $sup->name ?? "";
+                    }
+
+                    // Nationality Name
+                    $nationalityName = ($r->nationality == 1) ? "Indian" : "Foreign";
+
+                    // UUID
+                    $rateUUID = \Illuminate\Support\Str::uuid()->toString();
+
+                    $rateDetails[] = [
+                        "UniqueID"               => $rateUUID,
+                        "SupplierId"             => (int)$r->supplierId,
+                        "SupplierName"           => $supplierName,
+                        "NationalityId"          => (int)$r->nationality,
+                        "NationalityName"        => $nationalityName,
+                        "ValidFrom"              => $r->fromDate,
+                        "ValidTo"                => $r->toDate,
+                        "CurrencyId"             => (int)$r->currencyId,
+                        "CurrencyName"           => "",
+                        "CurrencyConversionName" => "",
+                        "IndianAdultEntFee"      => (string)$r->adultCost,
+                        "IndianChildEntFee"      => (string)$r->childCost,
+                        "ForeignerAdultEntFee"   => (string)$r->adultCost,
+                        "ForeignerChildEntFee"   => (string)$r->childCost,
+                        "TaxSlabId"              => (int)$r->gstTax,
+                        "TaxSlabName"            => "IT",
+                        "TaxSlabVal"             => "0",
+                        "TotalCost"              => 0,
+                        "Policy"                 => "",
+                        "TAC"                    => "",
+                        "Remarks"                => "",
+                        "Status"                 => (string)$r->status,
+                        "AddedBy"                => 0,
+                        "UpdatedBy"              => 0,
+                        "AddedDate"              => now(),
+                        "UpdatedDate"            => now()
+                    ];
+                }
+
+
+                //------------------------------------
+                // BUILD RATE JSON ONLY IF DATA EXISTS
+                //------------------------------------
+                $rateJson = null;
+
+                if (!empty($rateDetails)) {
+                    $rateJsonStructure = [
+                        "MonumentId"      => $user->id,
+                        "MonumentUUID"    => $uniqueId,
+                        "MonumentName"    => $user->entranceName,
+                        "DestinationID"   => $destinationId,
+                        "DestinationName" => $destinationName,
+                        "CompanyId"       => "",
+                        "CompanyName"     => "",
+                        "Header"          => $header,
+                        "Data"            => [
+                            [
+                                "Total"       => count($rateDetails),
+                                "RateDetails" => $rateDetails
+                            ]
+                        ]
+                    ];
+
+                    $rateJson = json_encode($rateJsonStructure, JSON_UNESCAPED_UNICODE);
+
+                    // Only run if rateDetailsList has data
+                    if (!empty($rateDetails)) {
+                        foreach ($rateDetails as $rateItem) {
+                            // Extract dates
+                            $startDate = Carbon::parse($rateItem['ValidFrom']);
+                            $endDate   = Carbon::parse($rateItem['ValidTo']);
+
+                            $destinationUniqueID = !empty($destinationId)  ? 'DES' . str_pad($destinationId, 6, '0', STR_PAD_LEFT) : '';
+                            $supplierUniqueID = !empty($rateItem['SupplierId'])  ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
+
+                            // Loop day-by-day
+                            while ($startDate->lte($endDate)) {
+
+                                DB::connection('pgsql')
+                                    ->table('sightseeing.monument_search')
+                                    ->updateOrInsert(
+                                        [
+                                            "RateUniqueId" => $rateItem['UniqueID'],  // unique per rate
+                                            "MonumentUID"             => $uniqueId,
+                                            "Date"                => $startDate->format("Y-m-d")
+                                        ],
+                                        [
+                                            "Destination" => $destinationUniqueID,
+                                            //"RoomBedType"   => json_encode($rateItem['RoomBedType'], JSON_UNESCAPED_UNICODE),
+                                            "SupplierUID"    => $supplierUniqueID,
+                                            "CompanyId"     => 0,
+                                            "Currency"    => $rateItem['CurrencyId'],
+                                            "RateJson"      => $rateJson,
+                                            "Status"        => 1,
+                                            "AddedBy"       => 1,
+                                            "UpdatedBy"     => 1,
+                                            "created_at"    => now(),
+                                            "updated_at"    => now()
+                                        ]
+                                    );
+                                    ///update
+                                $startDate->addDay(); // next date
+                            }
+                        }
+                    }
+                }
+
+                //------------------------------------
+                // PREPARE INSERT DATA
+                //------------------------------------
+                $updateData = [
+                    'id'             => $user->id,
+                    'MonumentName'   => $user->entranceName,
+                    'Destination'    => $destinationId,
+                    'TransferType'   => $user->transferType,
+                    'Default'        => $user->isDefault,
+                    'Status'         => $user->status,
+                    'JsonWeekendDays' => $closeDaysnameJson,
+                    'UniqueID'       => $uniqueId,
+                    'AddedBy'        => 1,
+                    'UpdatedBy'      => 1,
+                    'created_at'     => now(),
+                    'updated_at'     => now(),
+                ];
+
+                // VERY IMPORTANT:
+                // Only add RateJson if data exists
+                if (!empty($rateJson)) {
+                    $updateData['RateJson'] = $rateJson;
+                }
+
+                //------------------------------------
+                // INSERT / UPDATE
+                //------------------------------------
                 DB::connection('pgsql')
                     ->table('sightseeing.monument_master')
                     ->updateOrInsert(
-                        ['id' => $user->id],  // Match by primary key
-                        [
-                            'id'           => $user->id,
-                            'MonumentName'          => $user->entranceName,
-                            'Destination'  => $departmentId,
-                            'TransferType'  => $user->transferType,
-                            'Default'  => $user->isDefault,
-                            //'Supplier'  => $user->supplierId,
-                            'Status'  => $user->status,
-                            //'Description'  => "",
-                            //'RPK'  => $user->id,
-                            'JsonWeekendDays'  => $closeDaysnameJson,
-                            'UniqueID'  => $uniqueId,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
-                        ]
+                        ['id' => $user->id],
+                        $updateData
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Monument Master Data synced successfully'
             ];
         } catch (\Exception $e) {
@@ -290,6 +633,7 @@ class DataSyncController extends Controller
             ];
         }
     }
+
 
     public function syncAgent()
     {
@@ -1211,7 +1555,7 @@ class DataSyncController extends Controller
                                             "updated_at"    => now()
                                         ]
                                     );
-
+                                ///update
                                 $startDate->addDay(); // next date
                             }
                         }
