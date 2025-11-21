@@ -255,7 +255,7 @@ class DataSyncController extends Controller
                     // ------------------------------------------------------
                     // FINAL JSON FORMAT (NO SLASHES, VALID PGSQL JSON)
                     // ------------------------------------------------------
-                    $rateDetails  = [
+                    $rateDetails[]  = [
                         "UniqueID"        => $rateUUID,
                         "Type"            => "Activity",
                         "SupplierId"      => $rate->supplierId ?? '',
@@ -310,6 +310,46 @@ class DataSyncController extends Controller
 
                     $rateJson = json_encode($rateJsonStructure);
 
+                    // Only run if rateDetailsList has data
+                    if (!empty($rateDetails)) {
+                        foreach ($rateDetails as $rateItem) {
+                            // Extract dates
+                            $startDate = Carbon::parse($rateItem['ValidFrom']);
+                            $endDate   = Carbon::parse($rateItem['ValidTo']);
+
+                            $destinationUniqueID = !empty($rateItem['DestinationID'])  ? 'DES' . str_pad($rateItem['DestinationID'], 6, '0', STR_PAD_LEFT) : '';
+                            $supplierUniqueID = !empty($rateItem['SupplierId'])  ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
+
+                            // Loop day-by-day
+                            while ($startDate->lte($endDate)) {
+
+                                DB::connection('pgsql')
+                                    ->table('sightseeing.activity_search')
+                                    ->updateOrInsert(
+                                        [
+                                            "RateUniqueId" => $rateItem['UniqueID'],  // unique per rate
+                                            "ActivityUID"             => $uniqueId,
+                                            "Date"                => $startDate->format("Y-m-d")
+                                        ],
+                                        [
+                                            "Destination" => $destinationUniqueID,
+                                            //"RoomBedType"   => json_encode($rateItem['RoomBedType'], JSON_UNESCAPED_UNICODE),
+                                            "SupplierUID"    => $supplierUniqueID,
+                                            "CompanyId"     => 0,
+                                            "Currency"    => $rateItem['CurrencyId'],
+                                            "RateJson"      => $rateJson,
+                                            "Status"        => 1,
+                                            "AddedBy"       => 1,
+                                            "UpdatedBy"     => 1,
+                                            "created_at"    => now(),
+                                            "updated_at"    => now()
+                                        ]
+                                    );
+                                    ///update
+                                $startDate->addDay(); // next date
+                            }
+                        }
+                    }
 
                     // ✅ Insert / Update data to PGSQL
                     DB::connection('pgsql')
@@ -759,7 +799,6 @@ class DataSyncController extends Controller
             ];
         }
     }
-
 
     public function syncAgent()
     {
@@ -1850,6 +1889,692 @@ class DataSyncController extends Controller
             return [
                 'status'  => true,
                 'message' => 'Business Type Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function seasonMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('seasonmaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('others.season_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id'           => $user->id,
+                            'Name'           => $user->name ?? "",
+                            'SeasonName'           => $user->name ?? "",
+                            'FromDate'           => $user->fromDate,
+                            'ToDate'           => $user->toDate,
+                            'Default'           => 0,
+                            'Status'  => $user->status,
+                            //'RPK'  => $user->id,
+                            'AddedBy'     => 1,
+                            'UpdatedBy'     => 1,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Season Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function hsnSacMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('saccodemaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('others.sac_code_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id'           => $user->id,
+                            'ServiceType'           => $user->serviceType,
+                            'SacCode'           => $user->sacCode,
+                            'SetDefault'           => $user->setDefault,
+                            'GstSlabId'           => $user->taxSlab,
+                            'Status'  => $user->status,
+                            //'RPK'  => $user->id,
+                            'AddedBy'     => 1,
+                            'UpdatedBy'     => 1,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'HSN/SAC Code Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function gstMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('gstmaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('others.tax_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id'           => $user->id,
+                            'ServiceType'           => $user->serviceType,
+                            'TaxSlabName'           => $user->gstSlabName,
+                            'TaxValue'           => $user->gstValue,
+                            'SetDefault'           => $user->setDefault,
+                            'PriceRangeFrom'           => $user->priceRangeFrom,
+                            'PriceRangeTo'           => $user->priceRangeTo,
+                            'Currency'           => $user->currencyId,
+                            'Status'  => $user->status,
+                            //'RPK'  => $user->id,
+                            'AddedBy'     => 1,
+                            'UpdatedBy'     => 1,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'GST Tax Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function companyAddressMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('officebranches')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('administrator.company_offcename')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id'           => $user->id,
+                            'CompanyId'           => 1,
+                            'OfficeName'           => $user->name,
+                            'Country'           => $user->countryId,
+                            'State'           => $user->stateId,
+                            'City'           => $user->cityId,
+                            'Address'           => $user->address." Pin-".$user->pinCode,
+                            'ContacctPersonName'           => "",
+                            'Email'           => $user->email,
+                            'Phone'           => $user->contactNumber,
+                            'Mobile'           => $user->contactNumber,
+                            'GstNo'           => $user->gstn,
+                            'Currency'           => 0,
+                            'office_type'           => $user->addressType,
+                            'Pan'           => $user->PAN,
+                            'Cin'           => $user->CIN,
+                            'Iec'           => $user->IEC,
+                            'Website'           => $user->web_url,
+                            'CountryCode'           => $user->countryCode,
+                            'Status'  => $user->status,
+                            //'RPK'  => $user->id,
+                            'AddedBy'     => 1,
+                            'UpdatedBy'     => 1,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Company Address Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function queryMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('querymaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+                $displayId = $user->displayId;
+                $prefix = 'BS';
+                // 2) Generate financial year string, e.g. 2025-2026 → "25-26"
+                $currentYear = (int) date('Y');     // e.g. 2025
+                $nextYear   = $currentYear + 1;     // 2026
+
+                $fyPart = substr($currentYear, -2) . '-' . substr($nextYear, -2); // "25-26"
+
+                // 3) Sequence padded to 6 digits from id
+                $seq = str_pad($displayId, 6, '0', STR_PAD_LEFT); // 43 → "000043"
+
+                // 4) Final format: BS25-26/000043
+                $queryId = $prefix . $fyPart . '/' . $seq;
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('querybuilder.query_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id'           => $user->id,
+                            'QueryId'           => $queryId,
+                            'ClientType'           => $user->clientType ?? "",
+                            'LeadPax'           => $user->leadPaxName,
+                            'Subject'           => $user->subject,
+                            'FromDate'           => $this->fixDate($user->fromDate),
+                            'TAT'           => $user->tat,
+                            'LeadSource'           => $user->leadsource,
+                            'ToDate'           => $this->fixDate($user->toDate),
+                            'Priority'           => $user->queryPriority,
+                            'TourId'           => $user->tourId,
+                            'ReferenceId'           => 0,
+                            'QueryStatus'           => $user->queryStatus,
+                            'CompanyId'           => 1,
+                            'Fk_QueryId'           => 0,
+                            'Type'           => $user->travelType,
+                            //'Status'  => $user->status,
+                            //'RPK'  => $user->id,
+                            'AddedBy'     => 1,
+                            'UpdatedBy'     => 1,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Query Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    private function fixDate($date)
+    {
+        return ($date == "0000-00-00" || $date == null) ? null : $date;
+    }
+
+    public function guideMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('packagebuilderhotelmaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+                $hotelCityId = null;
+                if ($user->hotelCity) {
+                    $department = DB::connection('mysql')
+                        ->table('destinationmaster')
+                        ->where('name', $user->hotelCity)
+                        ->first();
+
+                    $hotelCityId = $department->id ?? null;
+                }
+
+                $countryId = null;
+                if ($user->hotelCountry) {
+                    $countrydata = DB::connection('mysql')
+                        ->table('countrymaster')
+                        ->where('name', $user->hotelCountry)
+                        ->first();
+
+                    $countryId = $countrydata->id ?? null;
+                }
+
+                // 🔹 Unique ID — if missing, make from MySQL ID
+                $uniqueId = !empty($user->id)  ? 'HOTL' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+
+                // 🔹 Build Hotel Basic Details JSON
+                $hotelBasicDetails = [
+                    "Verified"        => (int)($user->verified ?? 0),
+                    "HotelGSTN"       => $user->gstn ?? "",
+                    "HotelInfo"       => $user->hotelInfo ?? "",
+                    "HotelLink"       => $user->hoteldetail ?? "",
+                    "HotelType"       => (int)($user->hotelTypeId ?? 0),
+                    "HotelChain"      => (int)($user->hotelChain ?? 0),
+                    "CheckInTime"     => $user->checkInTime ?? "",
+                    "HotelPolicy"     => $user->policy ?? "",
+                    "CheckOutTime"    => $user->checkOutTime ?? "",
+                    "HotelAddress"    => $user->hotelAddress ?? "",
+                    "InternalNote"    => $user->internalNote ?? "",
+                    "HotelCategory"   => (int)($user->hotelCategoryId ?? 0),
+                    // Convert comma-separated room IDs to array
+                    "HotelRoomType"   => !empty($user->roomType)
+                        ? array_values(array_filter(
+                            array_map('trim', explode(',', $user->roomType)),
+                            fn($v) => $v !== ""
+                        ))
+                        : [],
+
+                    "HotelAmenities"  => $user->amenities ?? ""
+                ];
+
+                $hotelBasicDetailsJson = json_encode($hotelBasicDetails);
+
+                // FETCH HOTEL CONTACT DETAILS FROM MYSQL
+                $hotelContacts = DB::connection('mysql')
+                    ->table('hotelcontactpersonmaster')  // <-- Change to your correct table name
+                    ->where('corporateId', $user->id)
+                    ->get();
+
+                // FORMAT CONTACT DETAILS AS JSON
+                $contactDetailsArray = [];
+
+                foreach ($hotelContacts as $c) {
+                    $contactDetailsArray[] = [
+                        "Division"       => $c->division,
+                        "NameTitle"      => $c->nameTitle,
+                        "FirstName"      => $c->firstName,
+                        "LastName"       => $c->lastName,
+                        "Designation"    => $c->designation,
+                        "CountryCode"    => $c->countryCode,
+                        "Phone1"         => $c->phone,
+                        "Phone2"         => $c->phone2,
+                        "Phone3"         => $c->phone3,
+                        "Email"          => $c->email,
+                        "SecondaryEmail" => $c->email2,
+                    ];
+                }
+
+                // Convert to JSON (empty array if no contacts)
+                $hotelContactJson = json_encode($contactDetailsArray, JSON_UNESCAPED_UNICODE);
+
+                $rateRows  = DB::connection('mysql')
+                    ->table('dmcroomtariff')
+                    ->where('serviceid', $user->id) // serviceid = HotelId
+                    ->get();
+
+                // If no rate found, store empty array
+                if ($rateRows->isEmpty()) {
+                    $rateJson = json_encode([]);
+                } else {
+
+                    // Fetch destination name (already mapping HotelCityId above)
+                    $destination = DB::connection('mysql')
+                        ->table('destinationmaster')
+                        ->where('id', $hotelCityId)
+                        ->first();
+
+                    $destinationName = $destination->name ?? "";
+
+                    $hotelCategoryName = null;
+                    if (!empty($user->roomType)) {
+                        $hotelCategoryData = DB::connection('mysql')
+                            ->table('hotelcategorymaster')
+                            ->where('id', $user->hotelCategoryId)
+                            ->first();
+
+                        $hotelCategoryName = $hotelCategoryData->name ?? null;  // Use the correct column name
+                    }
+
+                    $hotelTypeName = null;
+                    if (!empty($user->roomType)) {
+                        $hotelTypeData = DB::connection('mysql')
+                            ->table('hoteltypemaster')
+                            ->where('id', $user->hotelTypeId)
+                            ->first();
+
+                        $hotelTypeName = $hotelTypeData->hotelCategory ?? null;  // Use the correct column name
+                    }
+
+                    // HEADER (Static Structure)
+                    $header = [
+                        "RateChangeLog" => [
+                            [
+                                "ChangeDateTime" => "",
+                                "ChangedByID" => "",
+                                "ChangeByValue" => "",
+                                "ChangeSetDetail" => [
+                                    [
+                                        "ChangeFrom" => "",
+                                        "ChangeTo" => ""
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ];
+
+                    $rateDetailsList = [];
+
+                    foreach ($rateRows as $rr) {
+
+                        $supplierName = null;
+                        if (!empty($rr->supplierId)) {
+                            $supplierData = DB::connection('mysql')
+                                ->table('suppliersmaster')
+                                ->where('id', $rr->supplierId)
+                                ->first();
+
+                            $supplierName = $supplierData->name ?? null;  // Use the correct column name
+                        }
+
+                        $roomTypeName = null;
+                        if (!empty($rr->roomType)) {
+                            $supplierData = DB::connection('mysql')
+                                ->table('roomtypemaster')
+                                ->where('id', $rr->roomType)
+                                ->first();
+
+                            $roomTypeName = $supplierData->name ?? null;  // Use the correct column name
+                        }
+
+                        $mealPlanName = null;
+                        if (!empty($rr->roomType)) {
+                            $mealPlanData = DB::connection('mysql')
+                                ->table('mealplanmaster')
+                                ->where('id', $rr->mealPlan)
+                                ->first();
+
+                            $mealPlanName = $mealPlanData->name ?? null;  // Use the correct column name
+                        }
+
+                        // Room Bed Type Example → you can modify if beds differ
+                        $roomBedType = [
+                            [
+                                "RoomBedTypeId" => 3,
+                                "RoomBedTypeName" => "SGL Room",
+                                "RoomCost" => (float)$rr->singleoccupancy,
+                                "RoomTaxValue" => "0%",
+                                "RoomCostRateValue" => 0,
+                                "RoomTotalCost" => (float)$rr->singleoccupancy
+                            ],
+                            [
+                                "RoomBedTypeId" => 4,
+                                "RoomBedTypeName" => "DBL Room",
+                                "RoomCost" => (float)$rr->doubleoccupancy,
+                                "RoomTaxValue" => "0%",
+                                "RoomCostRateValue" => 0,
+                                "RoomTotalCost" => (float)$rr->doubleoccupancy
+                            ],
+                            [
+                                "RoomBedTypeId" => 5,
+                                "RoomBedTypeName" => "TWIN Room",
+                                "RoomCost" => 0,  // If no twin column, set 0
+                                "RoomTaxValue" => "0%",
+                                "RoomCostRateValue" => 0,
+                                "RoomTotalCost" => 0
+                            ],
+                            [
+                                "RoomBedTypeId" => 6,
+                                "RoomBedTypeName" => "TPL Room",
+                                "RoomCost" => (float)$rr->tripleoccupancy,
+                                "RoomTaxValue" => "0%",
+                                "RoomCostRateValue" => 0,
+                                "RoomTotalCost" => (float)$rr->tripleoccupancy
+                            ],
+                            [
+                                "RoomBedTypeId" => 7,
+                                "RoomBedTypeName" => "ExtraBed(A)",
+                                "RoomCost" => (float)$rr->extraBed,
+                                "RoomTaxValue" => "0%",
+                                "RoomCostRateValue" => 0,
+                                "RoomTotalCost" => (float)$rr->extraBed
+                            ],
+                            [
+                                "RoomBedTypeId" => 8,
+                                "RoomBedTypeName" => "ExtraBed(C)",
+                                "RoomCost" => (float)$rr->childwithextrabed,
+                                "RoomTaxValue" => "0%",
+                                "RoomCostRateValue" => 0,
+                                "RoomTotalCost" => (float)$rr->childwithextrabed
+                            ],
+                        ];
+
+
+                        //mealType
+                        $mealTypes = [
+                            [
+                                "MealTypeId"        => 1,
+                                "MealCost"          => (float)$rr->breakfast,
+                                "MealTypeName"      => "Breakfast",
+                                "MealTaxSlabName"   => "IT",
+                                "MealTaxValue"      => 0,
+                                "MealCostRateValue" => 0,
+                                "MealTotalCost"     => (float)$rr->breakfast
+                            ],
+                            [
+                                "MealTypeId"        => 3,
+                                "MealCost"          => (float)$rr->lunch,
+                                "MealTypeName"      => "Lunch",
+                                "MealTaxSlabName"   => "IT",
+                                "MealTaxValue"      => 0,
+                                "MealCostRateValue" => 0,
+                                "MealTotalCost"     => (float)$rr->lunch
+                            ],
+                            [
+                                "MealTypeId"        => 2,
+                                "MealCost"          => (float)$rr->dinner,
+                                "MealTypeName"      => "Dinner",
+                                "MealTaxSlabName"   => "IT",
+                                "MealTaxValue"      => 0,
+                                "MealCostRateValue" => 0,
+                                "MealTotalCost"     => (float)$rr->dinner
+                            ]
+                        ];
+
+                        $ssid = \Illuminate\Support\Str::uuid()->toString();
+                        $rateDetailsList[] = [
+                            "UniqueID" => $ssid,
+                            "SupplierId" => $rr->supplierId,
+                            "SupplierName" => $supplierName,
+                            "HotelTypeId" => $user->hotelTypeId,
+                            "HotelTypeName" => $hotelTypeName,
+                            "HotelCategoryId" => $user->hotelCategoryId,
+                            "HotelCategoryName" => $hotelCategoryName,
+                            "ValidFrom" => $rr->fromDate,
+                            "ValidTo" => $rr->toDate,
+                            "MarketTypeId" => (int)$rr->marketType,
+                            "MarketTypeName" => "",
+                            "PaxTypeId" => (int)$rr->paxType,
+                            "PaxTypeName" => "",
+                            "TarrifeTypeId" => (int)$rr->tarifType,
+                            "TarrifeTypeName" => "",
+                            "HotelChainId" => "",
+                            "HotelChainName" => "",
+                            "UserId" => "",
+                            "UserName" => "",
+                            "SeasonTypeID" => (int)$rr->seasonType,
+                            "SeasonTypeName" => "",
+                            "SeasonYear" => $rr->seasonYear,
+                            "WeekendDays" => null,
+                            "WeekendDaysName" => null,
+                            "DayList" => [],
+                            "RoomTypeId" => (int)$rr->roomType,
+                            "RoomTypeName" => $roomTypeName,
+                            "MealPlanId" => $rr->mealPlan,
+                            "MealPlanName" => $mealPlanName,
+                            "CurrencyId" => (int)$rr->currencyId,
+                            "CurrencyName" => "INR",
+                            "CurrencyConversionRate" => "",
+                            "RoomTaxSlabId" => "",
+                            "RoomTaxSlabValue" => "",
+                            "RoomTaxSlabName" => "",
+                            "MealTaxSlabId" => "",
+                            "MealTaxSlabName" => "",
+                            "MealTaxSlabValue" => "",
+                            "MealType" => $mealTypes,
+                            "TAC" => $rr->roomTAC,
+                            "RoomBedType" => $roomBedType,
+                            "MarkupType" => $rr->markupType,
+                            "MarkupCost" => "",
+                            "TotalCost" => number_format(($rr->roomprice + ($rr->breakfast + $rr->lunch + $rr->dinner)), 2, '.', ''),
+                            "GrandTotal" => number_format(($rr->roomprice + ($rr->breakfast + $rr->lunch + $rr->dinner)), 2, '.', ''),
+                            "RoomTotalCost" => number_format($rr->roomprice, 2, '.', ''),
+                            "MealTotalCost" => number_format($rr->breakfast + $rr->lunch + $rr->dinner, 2, '.', ''),
+                            "Remarks" => $rr->remarks,
+                            "Status" => 'Active',
+                            "BlackoutDates" => [],
+                            "GalaDinner" => [],
+                        ];
+                    }
+
+
+                    $rateStructure = [
+                        "HotelId" => $user->id,
+                        "HotelUUID" => $uniqueId,
+                        "HotelName" => $user->hotelName,
+                        "DestinationID" => $hotelCityId,
+                        "DestinationName" => $destinationName,
+                        "Header" => $header,
+                        "Data" => [
+                            [
+                                "Total" => count($rateDetailsList),
+                                "RateDetails" => $rateDetailsList
+                            ]
+                        ]
+                    ];
+
+                    $rateJson = json_encode($rateStructure);
+
+                    // Only run if rateDetailsList has data
+                    if (!empty($rateDetailsList)) {
+                        foreach ($rateDetailsList as $rateItem) {
+                            // Extract dates
+                            $startDate = Carbon::parse($rateItem['ValidFrom']);
+                            $endDate   = Carbon::parse($rateItem['ValidTo']);
+
+                            $destinationUniqueID = !empty($hotelCityId)  ? 'DES' . str_pad($hotelCityId, 6, '0', STR_PAD_LEFT) : '';
+                            $supplierUniqueID = !empty($rateItem['SupplierId'])  ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
+
+                            // Loop day-by-day
+                            while ($startDate->lte($endDate)) {
+
+                                DB::connection('pgsql')
+                                    ->table('hotel.hotel_search')
+                                    ->updateOrInsert(
+                                        [
+                                            "ServiceRateUniqueId" => $rateItem['UniqueID'],  // unique per rate
+                                            "HotelID"             => $uniqueId,
+                                            "date"                => $startDate->format("Y-m-d")
+                                        ],
+                                        [
+                                            "DestinationID" => $destinationUniqueID,
+                                            //"RoomBedType"   => json_encode($rateItem['RoomBedType'], JSON_UNESCAPED_UNICODE),
+                                            "SupplierID"    => $supplierUniqueID,
+                                            "CompanyID"     => 0,
+                                            "CurrencyID"    => $rateItem['CurrencyId'],
+                                            "RateJson"      => $rateJson,
+                                            "Status"        => "Active",
+                                            "AddedBy"       => 1,
+                                            "UpdatedBy"     => 1,
+                                            "created_at"    => now(),
+                                            "updated_at"    => now()
+                                        ]
+                                    );
+                                ///update
+                                $startDate->addDay(); // next date
+                            }
+                        }
+                    }
+                }
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('hotel.hotel_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id'           => $user->id,
+                            'HotelName'          => $user->hotelName,
+                            'SelfSupplier'  => $user->supplier,
+                            'HotelCountry'  => $countryId,
+                            'HotelCity'  => $hotelCityId,
+                            'HotelBasicDetails'  => $hotelBasicDetailsJson,
+                            'HotelContactDetails'  => $hotelContactJson,
+                            'RateJson'  => $rateJson,
+                            'UniqueID'  => $uniqueId,
+                            'Destination'  => $hotelCityId,
+                            'default'  => 'No',
+                            'SupplierId'  => $user->supplierId,
+                            'HotelTypeId'  => $user->hotelTypeId,
+                            'HotelAddress'  => $user->hotelAddress,
+                            'HotelCategory'  => $user->hotelCategoryId,
+                            //'Status'  => ($user->status == 1) ? 'Active' : 'Inactive',
+                            'RPK'  => $user->id,
+                            'AddedBy'     => 1,
+                            'UpdatedBy'     => 1,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Hotel Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
