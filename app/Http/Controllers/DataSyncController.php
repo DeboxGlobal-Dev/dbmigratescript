@@ -369,7 +369,7 @@ class DataSyncController extends Controller
                                             "updated_at"    => now()
                                         ]
                                     );
-                                    ///update
+                                ///update
                                 $startDate->addDay(); // next date
                             }
                         }
@@ -838,8 +838,8 @@ class DataSyncController extends Controller
 
                 if (trim($name) === "") continue;
 
-                $uniqueId = !empty($user->id)  ? 'AG' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
-                
+                $uniqueId = !empty($user->id)  ? 'AGENT' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+
 
 
                 // ✅ Insert / Update data to PGSQL
@@ -859,7 +859,7 @@ class DataSyncController extends Controller
                             'LocalAgent'          => (($user->localAgent ?? null) == 1) ? 'Yes' : 'No',
                             'Category'          => $user->companyCategory,
                             'CompanyType'          => $user->companyTypeId,
-                            'BussinessType'          => $user->bussinessType ?? '',
+                            'BussinessType'          => 14 ?? '',
                             'MarketType'          => $user->marketType ?? '',
                             'Nationality'          => $user->nationality ?? '',
                             'Country'          => $user->countryId,
@@ -1640,6 +1640,19 @@ class DataSyncController extends Controller
                             ]
                         ];
 
+
+                        // DB::connection('pgsql')
+                        //     ->table('others.supplier')
+                        //     ->updateOrInsert(
+                        //         [
+                        //             "Name" => $user->hotelName,  // unique per rate
+                        //             "AliasName"             => $user->hotelName,
+                        //             "Destination"                => [$hotelCityId],
+                        //             "SupplierService"                => [12],
+                        //             "DefaultDestination"                => [$hotelCityId]
+                        //         ],
+                        //     );
+
                         $ssid = \Illuminate\Support\Str::uuid()->toString();
                         $rateDetailsList[] = [
                             "UniqueID" => $ssid,
@@ -2086,7 +2099,7 @@ class DataSyncController extends Controller
                             'Country'           => $user->countryId,
                             'State'           => $user->stateId,
                             'City'           => $user->cityId,
-                            'Address'           => $user->address." Pin-".$user->pinCode,
+                            'Address'           => $user->address . " Pin-" . $user->pinCode,
                             'ContacctPersonName'           => "",
                             'Email'           => $user->email,
                             'Phone'           => $user->contactNumber,
@@ -2121,7 +2134,7 @@ class DataSyncController extends Controller
         }
     }
 
-    private function buildQueryJson($user,$queryId)
+    private function buildQueryJson($user, $queryId)
     {
         // 1) Raw string from DB (e.g. "1,7,7,9,9,3,3,3,2,2,2,1,")
         $raw = trim($user->destinationId ?? '');
@@ -2146,15 +2159,15 @@ class DataSyncController extends Controller
             if ($index == 0) {
                 $mode = "flight";
 
-            // LAST item → flight
+                // LAST item → flight
             } elseif ($index == $total - 1) {
                 $mode = "flight";
 
-            // MIDDLE items → surface
+                // MIDDLE items → surface
             } else {
                 $mode = "surface";
             }
-        
+
             if ($dest) {
                 $destination = DB::connection('mysql')
                     ->table('destinationmaster')
@@ -2180,6 +2193,50 @@ class DataSyncController extends Controller
             $dayNo++;
         }
 
+        $contactName = null;
+        $contactEmail = null;
+        $contactPhone = null;
+        $contactAddress = null;
+
+        if ($user->clientType == 1) {
+            if ($user->companyId) {
+                $corporatedetails = DB::connection('mysql')
+                    ->table('corporatemaster')
+                    ->where('id', $user->companyId)
+                    ->first();
+
+                $contactName    = $corporatedetails?->name;
+                $contactEmail   = $this->safeTripleDecode($corporatedetails?->companyEmail ?? '');
+                $contactPhone   = $this->safeTripleDecode($corporatedetails?->companyPhone ?? '');
+                $contactAddress = $corporatedetails?->address1;
+            }
+        }
+
+        if ($user->clientType == 2) {
+            if ($user->companyId) {
+                $corporatedetails = DB::connection('mysql')
+                    ->table('contactsmaster')
+                    ->where('id', $user->companyId)
+                    ->first();
+
+                $contactName    = $corporatedetails?->firstName . " " . $corporatedetails?->lastName;
+                $contactAddress = $corporatedetails?->address1;
+            }
+        }
+
+        $paxType = $user->paxType;
+        if ($paxType == 1) {
+            $paxTypeId = 2;
+            $paxTypeName = 'GIT';
+        } else if ($paxType == 2) {
+            $paxTypeId = 1;
+            $paxTypeName = 'FIT';
+        } else {
+            $paxTypeId = 3;
+            $paxTypeName = 'Both';
+        }
+
+
         return [
             "QueryID"        => $queryId,
             "CompanyId"      => 1 ?? '',
@@ -2187,7 +2244,7 @@ class DataSyncController extends Controller
             "CompanyName"    => $user->companyName ?? "",
             "UserId"         => $user->addedBy ?? '',
             "UserName"       => $user->userName ?? '',
-            "UserType"       => $user->userType ?? '',
+            "UserType"       => $user->userType ?? [],
             "Budget"         => $user->budget ?? '',
             "Header" => [
                 "QueryStatus"   => $user->queryStatus ?? '',
@@ -2215,16 +2272,41 @@ class DataSyncController extends Controller
             "ISOName"         => $user->isoName ?? '',
 
             // Example QueryType (array)
-            "QueryType" => json_decode($user->QueryTypeJson ?? '[]', true),
-
+            "QueryType" => [
+                [
+                    "QueryTypeId" => $user->queryType,
+                    "QueryTypeName" => ($user->queryType == 1) ? 'Query' : ''
+                ]
+            ],
+            "PaxInfo" => [
+                "PaxType" => $paxTypeId,
+                "PaxTypeName" => $paxTypeName,
+                "TotalPax" => $user->adult + $user->child,
+                "Adult" => $user->adult,
+                "Child" => $user->child,
+                "Infant" => $user->infant
+            ],
+            "ContactInfo" => [
+                "ContactId" => $user->companyId,
+                "ContactPersonName" => $contactName,
+                "ContactNumber" => $contactPhone,
+                "ContactEmail" => $contactEmail,
+                "ContactAddress" => $contactAddress
+            ],
             "TravelDateInfo" => [
                 "ScheduleType" => "Date Wise",
-                "SeasonType"   => "17",
-                "SeasonYear"   => 2025,
-                "FromDate"     => $startDate,
-                "ToDate"       => $endDate,
+                "SeasonType"   => $user->seasonType,
+                "SeasonTypeName"   => '',
+                "SeasonYear"   => $user->seasonYear,
                 "TotalNights"  => $total > 0 ? $total - 1 : 0,
-                "TravelData"   => $travelData
+                "TotalNoOfDays"  => $total,
+                "FromDate"     => $startDate,
+                "FromDateDateWise" => "",
+                "ToDateDateWise" => null,
+                "ToDate"       => $endDate,
+                "TravelData"   => $travelData,
+                "ArrivalDate" => $startDate,
+                "DepartureDate" => $endDate
             ],
 
             // Preferences
@@ -2335,7 +2417,7 @@ class DataSyncController extends Controller
         // 3) Final JSON Return (Matches your provided JSON exactly)
         // ------------------------
         return [
-            "QuotationNumber" => $queryId.'-A' ?? "",
+            "QuotationNumber" => $queryId . '-A' ?? "",
             "TourId"          => "",
             "ReferenceId"     => "",
             "Header" => [
@@ -2504,7 +2586,12 @@ class DataSyncController extends Controller
                 // 4) Final format: BS25-26/000043
                 $queryId = $prefix . $fyPart . '/' . $seq;
 
-
+                if ($user->clientType == 1) {
+                    $clientType = 14;
+                }
+                if ($user->clientType == 2) {
+                    $clientType = 15;
+                }
 
                 // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
@@ -2514,23 +2601,23 @@ class DataSyncController extends Controller
                         [
                             'id'           => $user->id,
                             'QueryId'           => $queryId,
-                            'ClientType'           => $user->clientType ?? "",
+                            'ClientType'           => $$clientType ?? 14,
                             'LeadPax'           => $user->leadPaxName,
                             'Subject'           => $user->subject,
                             'FromDate'           => $this->fixDate($user->fromDate),
                             'TAT'           => $user->tat,
                             'LeadSource'           => $user->leadsource,
                             'ToDate'           => $this->fixDate($user->toDate),
-                            'Priority'           => $user->queryPriority,
+                            'Priority' => $user->queryPriority == 1 ? 'Low' : ($user->queryPriority == 2 ? 'Medium' : ($user->queryPriority == 3 ? 'High' : 'Low')),
                             'TourId'           => $user->tourId,
                             'ReferenceId'           => 0,
                             'QueryStatus'           => $user->queryStatus,
                             'CompanyId'           => 1,
                             'Fk_QueryId'           => 0,
                             'Type'           => $user->travelType,
-                            'QueryJson' => json_encode($this->buildQueryJson($user,$queryId)),
-                            'QuotationJson' => json_encode($this->buildQuotationJson($user,$queryId)),
-                            'FinalQuotationAfterOperation' => json_encode($this->buildQuotationJson($user,$queryId)),
+                            'QueryJson' => json_encode($this->buildQueryJson($user, $queryId)),
+                            'QuotationJson' => json_encode($this->buildQuotationJson($user, $queryId)),
+                            'FinalQuotationAfterOperation' => json_encode($this->buildQuotationJson($user, $queryId)),
                             //'Status'  => $user->status,
                             'RPK'  => $user->id,
                             'AddedBy'     => 1,
@@ -2991,9 +3078,9 @@ class DataSyncController extends Controller
                 //////////////////////
                 $displayId = "";
                 $querydata = DB::connection('mysql')
-                        ->table('querymaster')
-                        ->where('id', $user->queryId)
-                        ->first();
+                    ->table('querymaster')
+                    ->where('id', $user->queryId)
+                    ->first();
                 $displayId = $querydata->displayId ?? "";
 
                 $prefix = 'BS';
@@ -3012,46 +3099,46 @@ class DataSyncController extends Controller
                 //////////////////////
                 $currencyName = "";
                 $currency = DB::connection('mysql')
-                        ->table('querycurrencymaster')
-                        ->where('id', $user->currencyId)
-                        ->first();
+                    ->table('querycurrencymaster')
+                    ->where('id', $user->currencyId)
+                    ->first();
                 $currencyName = $currency->name ?? "";
                 /////////////////////
 
+                
                 //////////////////////
                 $bankName = "";
                 $bankdetail = DB::connection('mysql')
-                        ->table('bankmaster')
-                        ->where('id', $user->bankName)
-                        ->first();
+                    ->table('bankmaster')
+                    ->where('id', $user->bankNameItem)
+                    ->first();
                 $bankName = $bankdetail->bankName ?? "";
                 /////////////////////
 
                 //////////////////////
                 $deliveryName = "";
                 $deliverydetail = DB::connection('mysql')
-                        ->table('citymaster')
-                        ->where('id', $user->deliveryPlace)
-                        ->first();
+                    ->table('statemaster')
+                    ->where('id', $user->deliveryPlace)
+                    ->first();
                 $deliveryName = $deliverydetail->name ?? "";
                 /////////////////////
 
                 ////////////////////
                 $seqSetting = DB::connection('mysql')
-                ->table('invoicesequencesetting')
-                ->where('officeId', $user->officeCode)
-                ->first();
+                    ->table('invoicesequencesetting')
+                    ->where('officeId', $user->officeCode)
+                    ->first();
 
                 $baseFormat = "";
                 $lastNumber = 0;
-                
+
                 // 🔵 DETERMINE TAX OR PROFORMA
                 if ($user->officewise_proformasq > 0) {
                     // PROFORMA
                     $lastNumber = $user->officewise_proformasq;
                     $settingFormat = $seqSetting->profromaInvoiceSequence ?? 'PI-';
-                }
-                else if ($user->officewise_taxsq > 0) {
+                } else if ($user->officewise_taxsq > 0) {
                     // TAX
                     $lastNumber = $user->officewise_taxsq;
                     $settingFormat = $seqSetting->taxInvoiceSequence ?? 'TAX-';
@@ -3066,17 +3153,58 @@ class DataSyncController extends Controller
 
                 ////////////////////
                 DB::connection('pgsql')
-                ->table('querybuilder.query_master')
-                ->where('id', $user->queryId)
-                ->update([
-                    'FileNo' => $user->fileNo ?? '',
-                    'TourId' => $user->tourId ?? '',
-                ]);
+                    ->table('querybuilder.query_master')
+                    ->where('id', $user->queryId)
+                    ->update([
+                        'FileNo' => $user->fileNo ?? '',
+                        'TourId' => $user->tourId ?? '',
+                    ]);
                 ////////////////////
 
                 $total = $user->totalTourCost;
                 $total = is_numeric($total) ? (float)$total : 0;
                 $total = round($total, 2);
+
+                $particularRows = DB::connection('mysql')
+                    ->table('multipleinvoicemaster')
+                    ->where('invoiceId', $user->id)
+                    ->get();
+                $particulars = [];
+                
+                foreach ($particularRows as $row) {
+                    $amount = is_numeric($row->amount) ? (float)$row->amount : 0;
+                    $totalamount = is_numeric($row->totalamount) ? (float)$row->totalamount : 0;
+                    $totalTourCost = is_numeric($row->totalTourCost) ? (float)$row->totalTourCost : 0;
+                    $totalCostWithoutGST = is_numeric($row->totalCostWithoutGST) ? (float)$row->totalCostWithoutGST : 0;
+
+                    $taxVlaue = $row->gstTax/2;
+
+                    $particulars[] = [
+                        "description" => $row->particularsubject ?? '',
+                        "ParticularName" => $row->particularsubject ?? '',
+                        "Pax"            => $row->totalPax ?? '',
+                        "HSN"            => $row->hsnCodeId ?? '',
+                        "SAC"            => $row->hsnCodeId ?? '',
+                        "Amount"         => number_format($amount, 2),
+                        "Tcs"            => "%",
+                        "Tax"            => "%",
+                        "TotalAmount"    => number_format($totalamount, 2),
+                        "GSTId"          => ($row->igst!='') ? $row->gstTax : 0,
+                        "StateChange"    => $row->gstType == 1 ? "Same State" : ($row->gstType == 2 ? "Other State" : ""),
+                        "Igst"     => ($row->igst!='') ? $row->gstTax : 0,
+                        "IgstAmount"     => number_format(is_numeric($row->igst) ? $row->igst : 0, 2),
+                        "CgstAmount"     => number_format(is_numeric($row->cgst) ? $row->cgst : 0, 2),
+                        "SgstAmount"     => number_format(is_numeric($row->SGST) ? $row->SGST : 0, 2),
+                        "Cgst" => $taxVlaue ?? 0,
+                        "Sgst" => $taxVlaue ?? 0,
+                        "ExcludeGstorNot" => ($row->isTaxableVal==1) ? 'Yes' : 'No',
+                        "TotalTourCost" => number_format($totalamount, 2),
+                        "IsTaxable" => ($row->isTaxableVal==1) ? 'Yes' : 'No',
+                        "TaxType" => ($row->isExclusiveTax==2) ? 'Inclusive' : 'Exclusive',
+                        "ppCost" => number_format($amount, 2),
+                        "TaxableValue"  => number_format($totalCostWithoutGST, 2),
+                    ];
+                }
                 // -------------------------------
                 // ✅ Fix InvoiceDetails JSON
                 // -------------------------------
@@ -3120,32 +3248,12 @@ class DataSyncController extends Controller
                     "DueDate" => $this->fixDate($user->dueDate ?? null),
                     "ToutDate" => "",
                     "FileNo" => $user->FileNo ?? '',
-                    "Currency" => $currencyName ?? '',
+                    "Currency" => $user->currencyId ?? '',
                     "GuestNameorReceiptName" => $user->guestName ?? '',
                     "PlaceofDeliveryId" => $user->deliveryPlace,
                     "PlaceofDeliveryName" => $deliveryName,
-
-                    // ⭐ DYNAMIC PARTICULARS (Add your own)
-                    "Particulars" => [
-                        [
-                            "ParticularName" => $user->particularSubject ?? '',
-                            "Pax" => $user->totalPax ?? '',
-                            "HSN" => $user->hsn ?? '',
-                            "SAC" => $user->hsn ?? '',
-                            "Amount" => $user->totalamount ?? '',
-                            "Tcs" => "%",
-                            "Tax" => "%",
-                            "TotalAmount" => $user->totalamount ?? '',
-                            "GSTId" => '',
-                            "StateChange" => null,
-                            "IgstAmount" => number_format(is_numeric($user->igst) ? (float)$user->igst : 0, 2),
-                            "CgstAmount" => number_format(is_numeric($user->cgst) ? (float)$user->cgst : 0, 2),
-                            "SgstAmount" => number_format(is_numeric($user->SGST) ? (float)$user->SGST : 0, 2),
-                            "ExcludeGstorNot" => "No",
-                            "TotalTourCost" => $user->totalamount ?? '',
-                        ]
-                    ],
-
+                    "ROE" => $user->dayRoe,
+                    "Particulars" => $particulars,
                     "TotalTourCost" => $total,
                     "Cgst" => $user->cgst ?? '',
                     "Sgst" => $user->gst ?? '',
@@ -3160,21 +3268,21 @@ class DataSyncController extends Controller
                     'Category' => 'TOUR OPERATOR',
                     'CreatedBy' => "",
                     'showtaxvalue' => '',
-
                     "BankDetails" => [
                         [
                             "BankName" => $bankName ?? '',
-                            "AmountType" => $user->accountType ?? '',
-                            "BaneficiaryName" => $user->baneficiaryName ?? '',
-                            "AccountNumber" => $user->accountNumber ?? '',
-                            "IFSC" => $user->branchIfsc ?? '',
-                            "BranchAddress" => $user->branchAddress ?? '',
-                            "BranchSwiftCode" => $user->branchSwiftCode ?? '',
+                            "AmountType" => $bankdetail->accountType ?? "",
+                            "BaneficiaryName" => $bankdetail->beneficiaryName ?? '',
+                            "AccountNumber" => $bankdetail->accountNumber ?? '',
+                            "IFSC" => $bankdetail->branchIFSC ?? '',
+                            "BranchAddress" => $bankdetail->branchAddress ?? '',
+                            "BranchSwiftCode" => $bankdetail->branchSwiftCode ?? '',
                         ]
                     ],
 
                     "TermsandCondition" => "",
-                    "PaymentDesc" => ""
+                    "PaymentDesc" => "",
+                    "StateChange" => $user->gstType == 1 ? "Same State" : ($user->gstType == 2 ? "Other State" : ""),
                 ];
 
                 // ✅ Insert / Update data to PGSQL
@@ -3187,9 +3295,9 @@ class DataSyncController extends Controller
                             'InvoiceId'           => $invoiceNumber,
                             'Type'           => $user->invoiceTitle == 1 ? 'Tax' : ($user->invoiceTitle == 2 ? 'PI' : ''),
                             'QueryId'           => $queryId,
-                            'QuotationNo'           => $queryId."-A Final",
+                            'QuotationNo'           => $queryId . "-A Final",
                             'TourId'           => $user->tourId ?? '',
-                            'ReferenceId'           => $user->fileNo ?? '',
+                            'ReferenceId'           => '',
                             'InvoiceDetails' => json_encode($invoiceDetails, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                             'PdfFileLink'           => '',
                             'CompanyId'           => 1,
@@ -3267,6 +3375,337 @@ class DataSyncController extends Controller
                 'message' => 'Agent Contact Data synced successfully'
             ];
         } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    ////////////////test////////////
+    public function dmcSync()
+    {
+        try {
+            $mysqlUsers = DB::connection('mysql')
+                ->table('packagebuilderentrancemaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+                //------------------------------------
+                // DESTINATION
+                //------------------------------------
+                $destinationId = null;
+                $destinationName = "";
+
+                if ($user->entranceCity) {
+                    $destination = DB::connection('mysql')
+                        ->table('destinationmaster')
+                        ->where('name', $user->entranceCity)
+                        ->first();
+
+                    $destinationId  = $destination->id ?? null;
+                    $destinationName = $destination->name ?? "";
+                }
+
+                //------------------------------------
+                // CLOSE DAYS JSON
+                //------------------------------------
+                $closeDaysnameJson = !empty($user->closeDaysname)
+                    ? json_encode(array_values(array_filter(
+                        array_map('trim', explode(',', $user->closeDaysname)),
+                        fn($v) => $v !== ""
+                    )))
+                    : json_encode([]);
+
+                //------------------------------------
+                // UNIQUE ID
+                //------------------------------------
+                $uniqueId = !empty($user->id)
+                    ? 'SIGH' . str_pad($user->id, 6, '0', STR_PAD_LEFT)
+                    : '';
+
+                //------------------------------------
+                // FETCH RATES
+                //------------------------------------
+                $rates = DB::connection('mysql')
+                    ->table('dmcentrancerate')
+                    ->where('entranceNameId', $user->id)
+                    ->get();
+
+                //------------------------------------
+                // HEADER
+                //------------------------------------
+                $header = [
+                    "RateChangeLog" => [
+                        [
+                            "ChangeDateTime"   => "",
+                            "ChangedByID"      => "",
+                            "ChangeByValue"    => "",
+                            "ChangeSetDetail"  => [
+                                [
+                                    "ChangeFrom" => "",
+                                    "ChangeTo"   => ""
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+
+                //------------------------------------
+                // BUILD RATE DETAILS (IF ANY)
+                //------------------------------------
+                $rateDetails = [];
+
+                foreach ($rates as $r) {
+
+                    // Supplier Name
+                    $supplierName = "";
+                    if (!empty($r->supplierId)) {
+                        $sup = DB::connection('mysql')
+                            ->table('suppliersmaster')
+                            ->where('id', $r->supplierId)
+                            ->first();
+
+                        $supplierName = $sup->name ?? "";
+                    }
+
+                    // Nationality Name
+                    $nationalityName = ($r->nationality == 1) ? "Indian" : "Foreign";
+
+                    // UUID
+                    $rateUUID = \Illuminate\Support\Str::uuid()->toString();
+
+                    $rateDetails[] = [
+                        "UniqueID"               => $rateUUID,
+                        "SupplierId"             => (int)$r->supplierId,
+                        "SupplierName"           => $supplierName,
+                        "NationalityId"          => (int)$r->nationality,
+                        "NationalityName"        => $nationalityName,
+                        "ValidFrom"              => $r->fromDate,
+                        "ValidTo"                => $r->toDate,
+                        "CurrencyId"             => (int)$r->currencyId,
+                        "CurrencyName"           => "",
+                        "CurrencyConversionName" => "",
+                        "IndianAdultEntFee"      => (string)$r->adultCost,
+                        "IndianChildEntFee"      => (string)$r->childCost,
+                        "ForeignerAdultEntFee"   => (string)$r->adultCost,
+                        "ForeignerChildEntFee"   => (string)$r->childCost,
+                        "TaxSlabId"              => (int)$r->gstTax,
+                        "TaxSlabName"            => "IT",
+                        "TaxSlabVal"             => "0",
+                        "TotalCost"              => 0,
+                        "Policy"                 => "",
+                        "TAC"                    => "",
+                        "Remarks"                => "",
+                        "Status"                 => (string)$r->status,
+                        "AddedBy"                => 0,
+                        "UpdatedBy"              => 0,
+                        "AddedDate"              => now(),
+                        "UpdatedDate"            => now()
+                    ];
+                }
+
+
+                //------------------------------------
+                // BUILD RATE JSON ONLY IF DATA EXISTS
+                //------------------------------------
+                $rateJson = null;
+
+                if (!empty($rateDetails)) {
+                    $rateJsonStructure = [
+                        "MonumentId"      => $user->id,
+                        "MonumentUUID"    => $uniqueId,
+                        "MonumentName"    => $user->entranceName,
+                        "DestinationID"   => $destinationId,
+                        "DestinationName" => $destinationName,
+                        "CompanyId"       => "",
+                        "CompanyName"     => "",
+                        "Header"          => $header,
+                        "Data"            => [
+                            [
+                                "Total"       => count($rateDetails),
+                                "RateDetails" => $rateDetails
+                            ]
+                        ]
+                    ];
+
+                    $rateJson = json_encode($rateJsonStructure, JSON_UNESCAPED_UNICODE);
+
+                    // Only run if rateDetailsList has data
+                    if (!empty($rateDetails)) {
+                        foreach ($rateDetails as $rateItem) {
+                            // Extract dates
+                            $startDate = Carbon::parse($rateItem['ValidFrom']);
+                            $endDate   = Carbon::parse($rateItem['ValidTo']);
+
+                            $destinationUniqueID = !empty($destinationId)  ? 'DES' . str_pad($destinationId, 6, '0', STR_PAD_LEFT) : '';
+                            $supplierUniqueID = !empty($rateItem['SupplierId'])  ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
+
+                            // Loop day-by-day
+                            while ($startDate->lte($endDate)) {
+
+                                DB::connection('pgsql')
+                                    ->table('sightseeing.monument_search')
+                                    ->updateOrInsert(
+                                        [
+                                            "RateUniqueId" => $rateItem['UniqueID'],  // unique per rate
+                                            "MonumentUID"             => $uniqueId,
+                                            "Date"                => $startDate->format("Y-m-d")
+                                        ],
+                                        [
+                                            "Destination" => $destinationUniqueID,
+                                            //"RoomBedType"   => json_encode($rateItem['RoomBedType'], JSON_UNESCAPED_UNICODE),
+                                            "SupplierUID"    => $supplierUniqueID,
+                                            "CompanyId"     => 0,
+                                            "Currency"    => $rateItem['CurrencyId'],
+                                            "RateJson"      => $rateJson,
+                                            "Status"        => 1,
+                                            "AddedBy"       => 1,
+                                            "UpdatedBy"     => 1,
+                                            "created_at"    => now(),
+                                            "updated_at"    => now()
+                                        ]
+                                    );
+                                ///update
+                                $startDate->addDay(); // next date
+                            }
+                        }
+                    }
+                }
+
+                //------------------------------------
+                // PREPARE INSERT DATA
+                //------------------------------------
+                $updateData = [
+                    'id'             => $user->id,
+                    'MonumentName'   => $user->entranceName,
+                    'Destination'    => $destinationId,
+                    'TransferType'   => $user->transferType,
+                    'Default'        => $user->isDefault,
+                    'Status'         => $user->status,
+                    'JsonWeekendDays' => $closeDaysnameJson,
+                    'UniqueID'       => $uniqueId,
+                    'AddedBy'        => 1,
+                    'UpdatedBy'      => 1,
+                    'created_at'     => now(),
+                    'updated_at'     => now(),
+                ];
+
+                // VERY IMPORTANT:
+                // Only add RateJson if data exists
+                if (!empty($rateJson)) {
+                    $updateData['RateJson'] = $rateJson;
+                }
+
+                //------------------------------------
+                // INSERT / UPDATE
+                //------------------------------------
+                DB::connection('pgsql')
+                    ->table('sightseeing.monument_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],
+                        $updateData
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Monument Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function syncDirectClient()
+    {
+        try {
+
+            $mysqlUsers = DB::connection('mysql')
+                ->table('contactsmaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+                // ✅ Unique ID
+                $uniqueId = !empty($user->id)
+                    ? 'DICL' . str_pad($user->id, 6, '0', STR_PAD_LEFT)
+                    : null;
+
+                // ✅ FIX TITLE
+                $title = match ((int) ($user->contacttitleId ?? 0)) {
+                    1 => 'Mr.',
+                    2 => 'Mrs.',
+                    3 => 'Ms.',
+                    default => 'Mr.',
+                };
+
+                // ✅ FIX CONTACT TYPE
+                $contactType = match ((int) ($user->contactType ?? 0)) {
+                    1 => 'Employee',
+                    2 => 'B2C',
+                    3 => 'Guest',
+                    default => 'Guest List',
+                };
+
+                // ✅ FIX GENDER (VERY IMPORTANT)
+                $rawGender = strtolower(trim($user->gender ?? ''));
+
+                $gender = match ($rawGender) {
+                    'Male', 'm'                 => 'Male',
+                    'Female', 'f', 'female'    => 'Female',
+                    'other', 'o'                => 'Other',
+                    default                     => 'Male', // ✅ REQUIRED because Gender is NOT NULL
+                };
+
+                DB::connection('pgsql')
+                    ->table('others.direct_clients')
+                    ->updateOrInsert(
+                        ['id' => $user->id], // primary key sync
+                        [
+                            'Title'             => $title,
+                            'ContactType'       => $contactType,
+                            'FirstName'         => $user->firstName ?? null,
+                            'MiddleName'        => $user->middleName ?? null,
+                            'LastName'          => $user->lastName ?? null,
+
+                            // 🔢 Integer-safe fields
+                            'MarketType'        => is_numeric($user->marketType ?? null) ? (int)$user->marketType : null,
+                            'Nationality'       => is_numeric($user->nationalityId ?? null) ? (int)$user->nationalityId : null,
+                            'Country'           => is_numeric($user->countryId ?? null) ? (int)$user->countryId : null,
+                            'State'             => is_numeric($user->stateId ?? null) ? (int)$user->stateId : null,
+                            'City'              => is_numeric($user->cityId ?? null) ? (int)$user->cityId : null,
+
+                            // ✅ Fixed Gender
+                            'Gender'            => $gender,
+
+                            // ✅ Dates
+                            'DOB'               => $this->fixDate($user->birthDate ?? null),
+                            'AnniversaryDate'   => $this->fixDate($user->anniversaryDate ?? null),
+                            'TourId'          => $user->tourId ?? null,
+                            'QueryId'          => $user->queryId ?? null,
+                            'Remark1'          => $user->remark1 ?? null,
+                            'EmergencyContactNumber'          => $user->emergencyContact ?? null,
+                            'Agent'          => $user->agentName ?? null,
+                            'UniqueId'          => $uniqueId,
+                            'Status'            => is_numeric($user->status ?? null) ? (int)$user->status : 1,
+
+                            'created_at'        => now(),
+                            'updated_at'        => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Direct Client data synced successfully'
+            ];
+        } catch (\Exception $e) {
+
             return [
                 'status'  => false,
                 'message' => $e->getMessage(),
