@@ -156,8 +156,8 @@ class DataSyncController extends Controller
 
                 // 🔹 Common record
                 $record = [
-                    'TransferName'                => $data->transferName,
-                    'Destinations'         => $destinationJson,
+                    'Name'                => $data->transferName,
+                    'DestinationId'         => $destinationJson,
                     'TransferType'         => $data->transferType,
                     'Status'    => $data->status,
                     'AddedBy'             => 1,
@@ -166,18 +166,18 @@ class DataSyncController extends Controller
                 ];
 
                 // 🔹 If exists (match by id), update — else insert new
-                $exists = DB::connection('pgsql')->table('others.transfer_master')
+                $exists = DB::connection('pgsql')->table('transport.transport_master')
                     ->where('id', $data->id)
                     ->exists();
 
                 if ($exists) {
-                    DB::connection('pgsql')->table('others.transfer_master')
+                    DB::connection('pgsql')->table('transport.transport_master')
                         ->where('id', $data->id)
                         ->update($record);
                 } else {
-                    $record['RPK'] = $data->id;
+                    //$record['RPK'] = $data->id;
                     $record['created_at'] = now();
-                    DB::connection('pgsql')->table('others.transfer_master')->insert($record);
+                    DB::connection('pgsql')->table('transport.transport_master')->insert($record);
                 }
             }
 
@@ -4131,6 +4131,47 @@ class DataSyncController extends Controller
             ];
         } catch (\Exception $e) {
 
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function transferTypeSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('transfertypemaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('transport.transfer_type_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id'           => $user->id,
+                            'Name'           => $user->name,
+                            'Status'  => $user->status,
+                            //'RPK'  => $user->id,
+                            'AddedBy'     => 1,
+                            'UpdatedBy'     => 1,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Transfer Type Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
             return [
                 'status'  => false,
                 'message' => $e->getMessage(),
