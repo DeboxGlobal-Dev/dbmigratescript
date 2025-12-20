@@ -34,3 +34,7 @@ Route::get('/gstmastersync', [DataSyncController ::class, 'gstMasterSync']);
 Route::get('/companyaddresssync', [DataSyncController ::class, 'companyAddressMasterSync']);
 Route::get('/querymastersync', [DataSyncController ::class, 'queryMasterSync']);
 Route::get('/guidemastersync', [DataSyncController ::class, 'guideMasterSync']);
+Route::get('/invoicemastersync', [DataSyncController ::class, 'invoiceMasterSync']);
+Route::get('/agentcontactsync', [DataSyncController ::class, 'agentContactSync']);
+Route::get('/syncdirectclient', [DataSyncController ::class, 'syncDirectClient']);  /////check
+Route::get('/transfertypesync', [DataSyncController ::class, 'transferTypeSync']);
