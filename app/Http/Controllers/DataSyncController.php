@@ -2048,7 +2048,41 @@ class DataSyncController extends Controller
                 $hotelCityId = $destinations[$user->hotelCity]->id ?? null;
                 $countryId   = $countries[$user->hotelCountry]->id ?? null;
                 $uniqueId    = 'HOTL' . str_pad($user->id, 6, '0', STR_PAD_LEFT);
+                
+                /* -------------------------------------------------
+                | BUILD HOTEL ROOM TYPES (PUT HERE)
+                -------------------------------------------------*/
+                $hotelRoomTypes = [];
 
+                if (!empty($user->roomType)) {
+
+                    $roomTypeIds = array_map('trim', explode(',', $user->roomType));
+                    $roomCounts  = !empty($user->noOfRoom)
+                        ? array_map('trim', explode(',', $user->noOfRoom))
+                        : [];
+
+                    foreach ($roomTypeIds as $index => $roomTypeId) {
+                        $hotelRoomTypes[] = [
+                            "RoomTypeId"   => (string)$roomTypeId,
+                            "RoomTypeName" => $roomTypes[$roomTypeId]->name ?? "",
+                            "NoOfRoom"     => $roomCounts[$index] ?? "0"
+                        ];
+                    }
+                }
+
+                /* -------------------------------------------------
+                | BUILD HOTEL AMENITIES (PUT HERE)
+                -------------------------------------------------*/
+                $hotelAmenities = [];
+
+                if (!empty($user->amenities)) {
+                    $hotelAmenities = array_values(
+                        array_filter(
+                            array_map('trim', explode(',', $user->amenities))
+                        )
+                    );
+                }
+                
                 /* -------------------------------------------------
              | HOTEL BASIC DETAILS
              -------------------------------------------------*/
@@ -2065,10 +2099,8 @@ class DataSyncController extends Controller
                     "HotelAddress"    => $user->hotelAddress ?? "",
                     "InternalNote"    => $user->internalNote ?? "",
                     "HotelCategory"   => (int)($user->hotelCategoryId ?? 0),
-                    "HotelRoomType"   => !empty($user->roomType)
-                        ? array_values(array_filter(array_map('trim', explode(',', $user->roomType))))
-                        : [],
-                    "HotelAmenities"  => $user->amenities ?? ""
+                    "HotelRoomType"   => $hotelRoomTypes,
+                    "HotelAmenities"  => $hotelAmenities
                 ], JSON_UNESCAPED_UNICODE);
 
                 /* -------------------------------------------------
@@ -2111,9 +2143,9 @@ class DataSyncController extends Controller
                         "SupplierId" => $r->supplierId,
                         "SupplierName" => $suppliers[$r->supplierId]->name ?? "",
                         "HotelTypeId" => $user->hotelTypeId,
-                        "HotelTypeName" => $hotelTypes[$user->hotelTypeId]->hotelCategory ?? "",
+                        "HotelTypeName" => $hotelTypes[$user->hotelTypeId]->name ?? "",
                         "HotelCategoryId" => $user->hotelCategoryId,
-                        "HotelCategoryName" => $hotelCats[$user->hotelCategoryId]->name ?? "",
+                        "HotelCategoryName" => $hotelCats[$user->hotelCategoryId]->uploadKeyWord ?? "",
                         "ValidFrom" => $r->fromDate,
                         "ValidTo" => $r->toDate,
                         "RoomTypeId" => $r->roomType,
@@ -2194,6 +2226,12 @@ class DataSyncController extends Controller
                             'HotelContactDetails' => $hotelContactJson,
                             'RateJson' => $rateJson,
                             'UniqueID' => $uniqueId,
+                            'Destination'  => $hotelCityId,
+                            'default'  => 'No',
+                            'SupplierId'  => $user->supplierId,
+                            'HotelTypeId'  => $user->hotelTypeId,
+                            'HotelAddress'  => $user->hotelAddress,
+                            'HotelCategory'  => $user->hotelCategoryId,
                             'created_at' => now(),
                             'updated_at' => now()
                         ]
@@ -2205,7 +2243,6 @@ class DataSyncController extends Controller
             return ['status' => false, 'message' => $e->getMessage()];
         }
     }
-
 
 
     public function roomTypeSync()
@@ -2434,8 +2471,6 @@ class DataSyncController extends Controller
                 ->get();
 
             foreach ($mysqlUsers as $user) {
-
-
                 // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
                     ->table('others.tax_master')
@@ -4170,6 +4205,48 @@ class DataSyncController extends Controller
             return [
                 'status'  => true,
                 'message' => 'Transfer Type Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function vehicleTypeMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('vehicletypemaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('transport.vehicle_type_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id'           => $user->id,
+                            'Name'           => $user->name,
+                            'PaxCapacity'           => $user->capacity,
+                            'Status'  => $user->status,
+                            //'RPK'  => $user->id,
+                            'AddedBy'     => 1,
+                            'UpdatedBy'     => 1,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Vehicle Type Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
