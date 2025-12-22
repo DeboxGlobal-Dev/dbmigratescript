@@ -63,7 +63,8 @@ class DataSyncController extends Controller
             foreach ($mysqlUsers as $data) {
 
                 // Skip if supplier name empty
-                if (empty($data->name)) continue;
+                if (empty($data->name))
+                    continue;
 
                 // 🔹 SupplierService JSON
                 $typeColumns = [
@@ -81,7 +82,8 @@ class DataSyncController extends Controller
                 ];
                 $supplierService = [];
                 foreach ($typeColumns as $col)
-                    if (!empty($data->$col) && $data->$col > 0) $supplierService[] = (int)$data->$col;
+                    if (!empty($data->$col) && $data->$col > 0)
+                        $supplierService[] = (int) $data->$col;
 
                 // 🔹 Destination JSONs
                 $destinationJson = !empty($data->destinationId)
@@ -98,22 +100,22 @@ class DataSyncController extends Controller
 
                 // 🔹 Common record
                 $record = [
-                    'Name'                => $data->name,
-                    'AliasName'           => $data->aliasname ?? '',
-                    'PanInformation'      => $data->panInformation ?? '',
-                    'SupplierService'     => json_encode($supplierService),
-                    'Destination'         => $destinationJson,
-                    'PaymentTerm'         => $data->paymentTerm == 1 ? 'Cash' : ($data->paymentTerm == 2 ? 'Credit' : null),
-                    'ConfirmationType'    => $data->confirmationStatus == 3 ? 'Manual' : ($data->confirmationStatus == 6 ? 'Auto' : null),
+                    'Name' => $data->name,
+                    'AliasName' => $data->aliasname ?? '',
+                    'PanInformation' => $data->panInformation ?? '',
+                    'SupplierService' => json_encode($supplierService),
+                    'Destination' => $destinationJson,
+                    'PaymentTerm' => $data->paymentTerm == 1 ? 'Cash' : ($data->paymentTerm == 2 ? 'Credit' : null),
+                    'ConfirmationType' => $data->confirmationStatus == 3 ? 'Manual' : ($data->confirmationStatus == 6 ? 'Auto' : null),
                     'LocalAgent' => (($data->isLocalAgent ?? 0) == 1) ? 'Yes' : 'No',
-                    'Agreement'           => $data->agreement == 1 ? 'Yes' : ($data->agreement == 0 ? 'No' : null),
-                    'Status'              => $data->status == 1 ? 'Yes' : ($data->status == 0 ? 'No' : null),
-                    'UniqueID'            => $uniqueId,
-                    'DefaultDestination'  => $defaultDestinationJson,
-                    'Gst'                 => $data->gstn ?? '',
-                    'Remarks'             => $data->details ?? '',
-                    'updated_at'          => now(),
-                    'RPK'          => $data->id,
+                    'Agreement' => $data->agreement == 1 ? 'Yes' : ($data->agreement == 0 ? 'No' : null),
+                    'Status' => $data->status == 1 ? 'Yes' : ($data->status == 0 ? 'No' : null),
+                    'UniqueID' => $uniqueId,
+                    'DefaultDestination' => $defaultDestinationJson,
+                    'Gst' => $data->gstn ?? '',
+                    'Remarks' => $data->details ?? '',
+                    'updated_at' => now(),
+                    'RPK' => $data->id,
                 ];
 
                 // 🔹 If exists (match by id), update — else insert new
@@ -145,7 +147,8 @@ class DataSyncController extends Controller
 
             foreach ($mysqlUsers as $data) {
                 // Skip if supplier name empty
-                if (empty($data->transferName)) continue;
+                if (empty($data->transferName))
+                    continue;
 
 
                 // 🔹 Destination JSONs
@@ -156,13 +159,13 @@ class DataSyncController extends Controller
 
                 // 🔹 Common record
                 $record = [
-                    'Name'                => $data->transferName,
-                    'DestinationId'         => $destinationJson,
-                    'TransferType'         => $data->transferType,
-                    'Status'    => $data->status,
-                    'AddedBy'             => 1,
-                    'UpdatedBy'             => 1,
-                    'updated_at'          => now(),
+                    'Name' => $data->transferName,
+                    'DestinationId' => $destinationJson,
+                    'TransferType' => $data->transferType,
+                    'Status' => $data->status,
+                    'AddedBy' => 1,
+                    'UpdatedBy' => 1,
+                    'updated_at' => now(),
                 ];
 
                 // 🔹 If exists (match by id), update — else insert new
@@ -234,13 +237,13 @@ class DataSyncController extends Controller
                 $header = [
                     "RateChangeLog" => [
                         [
-                            "ChangeDateTime"   => "",
-                            "ChangedByID"      => "",
-                            "ChangeByValue"    => "",
-                            "ChangeSetDetail"  => [
+                            "ChangeDateTime" => "",
+                            "ChangedByID" => "",
+                            "ChangeByValue" => "",
+                            "ChangeSetDetail" => [
                                 [
                                     "ChangeFrom" => "",
-                                    "ChangeTo"   => ""
+                                    "ChangeTo" => ""
                                 ]
                             ]
                         ]
@@ -265,12 +268,12 @@ class DataSyncController extends Controller
 
 
                     $serviceCost[] = [
-                        "UpToPax"  => $rate->maxpax ?? "",
-                        "Rounds"   => 1,
-                        "Class"    => 1,
+                        "UpToPax" => $rate->maxpax ?? "",
+                        "Rounds" => 1,
+                        "Class" => 1,
                         "Duration" => 1,
-                        "Amount"   => $rate->activityCost ?? "",
-                        "Remarks"  => $rate->details ?? "",
+                        "Amount" => $rate->activityCost ?? "",
+                        "Remarks" => $rate->details ?? "",
                     ];
 
                     $rateUUID = \Illuminate\Support\Str::uuid()->toString();
@@ -279,31 +282,31 @@ class DataSyncController extends Controller
                     // ------------------------------------------------------
                     // FINAL JSON FORMAT (NO SLASHES, VALID PGSQL JSON)
                     // ------------------------------------------------------
-                    $rateDetails[]  = [
-                        "UniqueID"        => $rateUUID,
-                        "Type"            => "Activity",
-                        "SupplierId"      => $rate->supplierId ?? '',
-                        "SupplierName"    => $supplierName,
-                        "DestinationID"   => $departmentId,
+                    $rateDetails[] = [
+                        "UniqueID" => $rateUUID,
+                        "Type" => "Activity",
+                        "SupplierId" => $rate->supplierId ?? '',
+                        "SupplierName" => $supplierName,
+                        "DestinationID" => $departmentId,
                         "DestinationName" => $user->otherActivityCity,
-                        "ValidFrom"       => $rate->validFrom ?? "",
-                        "ValidTo"         => $rate->validTo ?? "",
-                        "Service"         => "",
-                        "CurrencyId"      => $rate->currencyId ?? '',
-                        "CurrencyName"    => "",
-                        "ChildCost"       => "",
-                        "ServiceCost"       => $serviceCost,
-                        "TaxSlabId"       => $rate->gstTax ?? "",
-                        "TaxSlabName"     => "",
-                        "TaxSlabVal"      => "",
-                        "TotalCost"       => $rate->activityCost ?? 0,
-                        "Remarks"         => $rate->details ?? "",
-                        "Status"          => 1,
-                        "AddedBy"         => 1,
-                        "UpdatedBy"       => 1,
-                        "AddedDate"       => now(),
-                        "UpdatedDate"     => now(),
-                        "SupplierUID"     => "SUPP" . str_pad($supplierId, 5, '0', STR_PAD_LEFT),
+                        "ValidFrom" => $rate->validFrom ?? "",
+                        "ValidTo" => $rate->validTo ?? "",
+                        "Service" => "",
+                        "CurrencyId" => $rate->currencyId ?? '',
+                        "CurrencyName" => "",
+                        "ChildCost" => "",
+                        "ServiceCost" => $serviceCost,
+                        "TaxSlabId" => $rate->gstTax ?? "",
+                        "TaxSlabName" => "",
+                        "TaxSlabVal" => "",
+                        "TotalCost" => $rate->activityCost ?? 0,
+                        "Remarks" => $rate->details ?? "",
+                        "Status" => 1,
+                        "AddedBy" => 1,
+                        "UpdatedBy" => 1,
+                        "AddedDate" => now(),
+                        "UpdatedDate" => now(),
+                        "SupplierUID" => "SUPP" . str_pad($supplierId, 5, '0', STR_PAD_LEFT),
                         "DestinationUUID" => "DEST" . str_pad($departmentId, 5, '0', STR_PAD_LEFT)
                     ];
                 }
@@ -316,17 +319,17 @@ class DataSyncController extends Controller
                 if (!empty($rateDetails)) {
 
                     $rateJsonStructure = [
-                        "ActivityId"      => $user->id,
-                        "ActivityUUID"    => $uniqueId,
-                        "ActivityName"    => $user->otherActivityName,
-                        "DestinationID"   => $departmentId,
+                        "ActivityId" => $user->id,
+                        "ActivityUUID" => $uniqueId,
+                        "ActivityName" => $user->otherActivityName,
+                        "DestinationID" => $departmentId,
                         "DestinationName" => $user->otherActivityCity,
-                        "CompanyId"       => "",
-                        "CompanyName"     => "",
-                        "Header"          => $header,
+                        "CompanyId" => "",
+                        "CompanyName" => "",
+                        "Header" => $header,
                         "Data" => [
                             [
-                                "Total"       => count($rateDetails),
+                                "Total" => count($rateDetails),
                                 "RateDetails" => $rateDetails
                             ]
                         ]
@@ -339,10 +342,10 @@ class DataSyncController extends Controller
                         foreach ($rateDetails as $rateItem) {
                             // Extract dates
                             $startDate = Carbon::parse($rateItem['ValidFrom']);
-                            $endDate   = Carbon::parse($rateItem['ValidTo']);
+                            $endDate = Carbon::parse($rateItem['ValidTo']);
 
-                            $destinationUniqueID = !empty($rateItem['DestinationID'])  ? 'DES' . str_pad($rateItem['DestinationID'], 6, '0', STR_PAD_LEFT) : '';
-                            $supplierUniqueID = !empty($rateItem['SupplierId'])  ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
+                            $destinationUniqueID = !empty($rateItem['DestinationID']) ? 'DES' . str_pad($rateItem['DestinationID'], 6, '0', STR_PAD_LEFT) : '';
+                            $supplierUniqueID = !empty($rateItem['SupplierId']) ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
 
                             // Loop day-by-day
                             while ($startDate->lte($endDate)) {
@@ -352,21 +355,21 @@ class DataSyncController extends Controller
                                     ->updateOrInsert(
                                         [
                                             "RateUniqueId" => $rateItem['UniqueID'],  // unique per rate
-                                            "ActivityUID"             => $uniqueId,
-                                            "Date"                => $startDate->format("Y-m-d")
+                                            "ActivityUID" => $uniqueId,
+                                            "Date" => $startDate->format("Y-m-d")
                                         ],
                                         [
                                             "Destination" => $destinationUniqueID,
                                             //"RoomBedType"   => json_encode($rateItem['RoomBedType'], JSON_UNESCAPED_UNICODE),
-                                            "SupplierUID"    => $supplierUniqueID,
-                                            "CompanyId"     => 0,
-                                            "Currency"    => $rateItem['CurrencyId'],
-                                            "RateJson"      => $rateJson,
-                                            "Status"        => 1,
-                                            "AddedBy"       => 1,
-                                            "UpdatedBy"     => 1,
-                                            "created_at"    => now(),
-                                            "updated_at"    => now()
+                                            "SupplierUID" => $supplierUniqueID,
+                                            "CompanyId" => 0,
+                                            "Currency" => $rateItem['CurrencyId'],
+                                            "RateJson" => $rateJson,
+                                            "Status" => 1,
+                                            "AddedBy" => 1,
+                                            "UpdatedBy" => 1,
+                                            "created_at" => now(),
+                                            "updated_at" => now()
                                         ]
                                     );
                                 ///update
@@ -381,34 +384,34 @@ class DataSyncController extends Controller
                         ->updateOrInsert(
                             ['id' => $user->id],  // Match by primary key
                             [
-                                'id'           => $user->id,
-                                'Type'           => "Activity",
-                                'ServiceName'          => $user->otherActivityName,
-                                'Destination'  => $departmentId,
-                                'Default'  => $user->isDefault,
-                                'Supplier'  => $user->supplierId,
-                                'Status'  => $user->status,
-                                'Description'  => $user->otherActivityDetail,
-                                'RPK'  => $user->id,
-                                'ClosingDay'  => $closeDaysnameJson,
-                                'UniqueID'  => $uniqueId,
-                                'RateJson'  => $rateJson,
-                                'AddedBy'     => 1,
-                                'UpdatedBy'     => 1,
-                                'created_at'     => now(),
-                                'updated_at'     => now(),
+                                'id' => $user->id,
+                                'Type' => "Activity",
+                                'ServiceName' => $user->otherActivityName,
+                                'Destination' => $departmentId,
+                                'Default' => $user->isDefault,
+                                'Supplier' => $user->supplierId,
+                                'Status' => $user->status,
+                                'Description' => $user->otherActivityDetail,
+                                'RPK' => $user->id,
+                                'ClosingDay' => $closeDaysnameJson,
+                                'UniqueID' => $uniqueId,
+                                'RateJson' => $rateJson,
+                                'AddedBy' => 1,
+                                'UpdatedBy' => 1,
+                                'created_at' => now(),
+                                'updated_at' => now(),
                             ]
                         );
                 }
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Activity Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -857,7 +860,7 @@ class DataSyncController extends Controller
                         //------------------------------------
                         // DESTINATION
                         //------------------------------------
-                        $destinationId   = $destinations[$user->entranceCity] ?? null;
+                        $destinationId = $destinations[$user->entranceCity] ?? null;
                         $destinationName = $user->entranceCity ?? '';
 
                         //------------------------------------
@@ -892,9 +895,9 @@ class DataSyncController extends Controller
                         $header = [
                             "RateChangeLog" => [
                                 [
-                                    "ChangeDateTime"  => "",
-                                    "ChangedByID"     => "",
-                                    "ChangeByValue"   => "",
+                                    "ChangeDateTime" => "",
+                                    "ChangedByID" => "",
+                                    "ChangeByValue" => "",
                                     "ChangeSetDetail" => [
                                         ["ChangeFrom" => "", "ChangeTo" => ""]
                                     ]
@@ -912,22 +915,22 @@ class DataSyncController extends Controller
                             $rateUUID = (string) Str::uuid();
 
                             $rateDetails[] = [
-                                "UniqueID"        => $rateUUID,
-                                "SupplierId"      => (int) $r->supplierId,
-                                "SupplierName"    => $suppliers[$r->supplierId] ?? '',
-                                "NationalityId"   => (int) $r->nationality,
+                                "UniqueID" => $rateUUID,
+                                "SupplierId" => (int) $r->supplierId,
+                                "SupplierName" => $suppliers[$r->supplierId] ?? '',
+                                "NationalityId" => (int) $r->nationality,
                                 "NationalityName" => $r->nationality == 1 ? "Indian" : "Foreign",
-                                "ValidFrom"       => $r->fromDate,
-                                "ValidTo"         => $r->toDate,
-                                "CurrencyId"      => (int) $r->currencyId,
-                                "IndianAdultEntFee"    => (string) $r->adultCost,
-                                "IndianChildEntFee"    => (string) $r->childCost,
+                                "ValidFrom" => $r->fromDate,
+                                "ValidTo" => $r->toDate,
+                                "CurrencyId" => (int) $r->currencyId,
+                                "IndianAdultEntFee" => (string) $r->adultCost,
+                                "IndianChildEntFee" => (string) $r->childCost,
                                 "ForeignerAdultEntFee" => (string) $r->adultCost,
                                 "ForeignerChildEntFee" => (string) $r->childCost,
-                                "TaxSlabId"       => (int) $r->gstTax,
-                                "TaxSlabName"     => "IT",
-                                "TaxSlabVal"      => "0",
-                                "Status"          => (string) $r->status,
+                                "TaxSlabId" => (int) $r->gstTax,
+                                "TaxSlabName" => "IT",
+                                "TaxSlabVal" => "0",
+                                "Status" => (string) $r->status,
                             ];
                         }
 
@@ -935,14 +938,14 @@ class DataSyncController extends Controller
                         // BUILD RATE JSON (ONCE)
                         //------------------------------------
                         $rateJson = json_encode([
-                            "MonumentId"      => $user->id,
-                            "MonumentUUID"    => $uniqueId,
-                            "MonumentName"    => $user->entranceName,
-                            "DestinationID"   => $destinationId,
+                            "MonumentId" => $user->id,
+                            "MonumentUUID" => $uniqueId,
+                            "MonumentName" => $user->entranceName,
+                            "DestinationID" => $destinationId,
                             "DestinationName" => $destinationName,
-                            "CompanyId"       => "",
-                            "CompanyName"     => "",
-                            "Header"          => $header,
+                            "CompanyId" => "",
+                            "CompanyName" => "",
+                            "Header" => $header,
                             "Data" => [
                                 [
                                     "Total" => count($rateDetails),
@@ -957,7 +960,7 @@ class DataSyncController extends Controller
                         foreach ($rateDetails as $rateItem) {
 
                             $start = Carbon::parse($rateItem['ValidFrom']);
-                            $end   = Carbon::parse($rateItem['ValidTo']);
+                            $end = Carbon::parse($rateItem['ValidTo']);
 
                             $destinationUID = $destinationId
                                 ? 'DES' . str_pad($destinationId, 6, '0', STR_PAD_LEFT)
@@ -971,18 +974,18 @@ class DataSyncController extends Controller
 
                                 $searchRows[] = [
                                     "RateUniqueId" => $rateItem['UniqueID'],
-                                    "MonumentUID"  => $uniqueId,
-                                    "Date"         => $start->toDateString(),
-                                    "Destination"  => $destinationUID,
-                                    "SupplierUID"  => $supplierUID,
-                                    "CompanyId"    => 0,
-                                    "Currency"     => $rateItem['CurrencyId'],
-                                    "RateJson"     => $rateJson,   // ✅ FIXED
-                                    "Status"       => 1,
-                                    "AddedBy"      => 1,
-                                    "UpdatedBy"    => 1,
-                                    "created_at"   => now(),
-                                    "updated_at"   => now(),
+                                    "MonumentUID" => $uniqueId,
+                                    "Date" => $start->toDateString(),
+                                    "Destination" => $destinationUID,
+                                    "SupplierUID" => $supplierUID,
+                                    "CompanyId" => 0,
+                                    "Currency" => $rateItem['CurrencyId'],
+                                    "RateJson" => $rateJson,   // ✅ FIXED
+                                    "Status" => 1,
+                                    "AddedBy" => 1,
+                                    "UpdatedBy" => 1,
+                                    "created_at" => now(),
+                                    "updated_at" => now(),
                                 ];
 
                                 $start->addDay();
@@ -993,19 +996,19 @@ class DataSyncController extends Controller
                         // MONUMENT MASTER
                         //------------------------------------
                         $monumentMasterRows[] = [
-                            'id'              => $user->id,
-                            'MonumentName'    => $user->entranceName,
-                            'Destination'     => $destinationId,
-                            'TransferType'    => $user->transferType,
-                            'Default'         => $user->isDefault,
-                            'Status'          => $user->status,
+                            'id' => $user->id,
+                            'MonumentName' => $user->entranceName,
+                            'Destination' => $destinationId,
+                            'TransferType' => $user->transferType,
+                            'Default' => $user->isDefault,
+                            'Status' => $user->status,
                             'JsonWeekendDays' => $closeDaysJson,
-                            'UniqueID'        => $uniqueId,
-                            'RateJson'        => $rateJson,
-                            'AddedBy'         => 1,
-                            'UpdatedBy'       => 1,
-                            'created_at'      => now(),
-                            'updated_at'      => now(),
+                            'UniqueID' => $uniqueId,
+                            'RateJson' => $rateJson,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ];
                     }
 
@@ -1049,9 +1052,10 @@ class DataSyncController extends Controller
 
                 $name = preg_replace('/[\p{Z}\p{C}]+/u', '', $user->name);
 
-                if (trim($name) === "") continue;
+                if (trim($name) === "")
+                    continue;
 
-                $uniqueId = !empty($user->id)  ? 'AGENT' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+                $uniqueId = !empty($user->id) ? 'AGENT' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
 
 
 
@@ -1061,38 +1065,38 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'WebsiteUrl'           => $user->websiteURL ?? '',
-                            'CompanyName'           => $user->name ?? '',
+                            'WebsiteUrl' => $user->websiteURL ?? '',
+                            'CompanyName' => $user->name ?? '',
                             'CompanyEmailAddress' => isset($user->companyEmail)
                                 ? $this->safeTripleDecode($user->companyEmail)
                                 : '',
                             'CompanyPhoneNumber' => isset($user->companyPhone)
                                 ? $this->safeTripleDecode($user->companyPhone)
                                 : '',
-                            'LocalAgent'          => (($user->localAgent ?? null) == 1) ? 'Yes' : 'No',
-                            'Category'          => $user->companyCategory,
-                            'CompanyType'          => $user->companyTypeId,
-                            'BussinessType'          => 14 ?? '',
-                            'MarketType'          => $user->marketType ?? '',
-                            'Nationality'          => $user->nationality ?? '',
-                            'Country'          => $user->countryId,
-                            'UniqueID'          => $uniqueId,
-                            'CompanyKey'          => "",
-                            'Status'          => $user->status,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'LocalAgent' => (($user->localAgent ?? null) == 1) ? 'Yes' : 'No',
+                            'Category' => $user->companyCategory,
+                            'CompanyType' => $user->companyTypeId,
+                            'BussinessType' => 14 ?? '',
+                            'MarketType' => $user->marketType ?? '',
+                            'Nationality' => $user->nationality ?? '',
+                            'Country' => $user->countryId,
+                            'UniqueID' => $uniqueId,
+                            'CompanyKey' => "",
+                            'Status' => $user->status,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Agent Data synced successfully'
             ];
         } catch (\Exception $e) {
 
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1115,28 +1119,28 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'ShortName'          => $user->sortname,
-                            'SetDefault'  => 0,
-                            'phonecode'  => $user->phonecode,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'ShortName' => $user->sortname,
+                            'SetDefault' => 0,
+                            'phonecode' => $user->phonecode,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Country Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1159,26 +1163,26 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'CountryId'          => $user->countryId,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'CountryId' => $user->countryId,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'State Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1201,27 +1205,27 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'StateId'          => $user->stateId,
-                            'CountryId'          => $user->countryId,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'StateId' => $user->stateId,
+                            'CountryId' => $user->countryId,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'City Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1237,7 +1241,7 @@ class DataSyncController extends Controller
 
             foreach ($mysqlUsers as $user) {
 
-                $uniqueId = !empty($user->id)  ? 'DEST' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+                $uniqueId = !empty($user->id) ? 'DEST' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
 
                 // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
@@ -1245,28 +1249,28 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'StateId'          => 0,
-                            'CountryId'          => $user->countryId,
-                            'UniqueID'          => $uniqueId,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'StateId' => 0,
+                            'CountryId' => $user->countryId,
+                            'UniqueID' => $uniqueId,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Destination Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1293,34 +1297,34 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'HotelWebsite'          => $user->hotelwebsite,
-                            'SelfSupplier'          => $user->selfsupplier,
-                            'ContactType'          => $user->division,
-                            'ContactName'  => $user->contactperson,
-                            'ContactDesignation'  => $user->designation,
-                            'ContactCountryCode'  => $user->countryCode,
-                            'ContactMobile'  => $user->phone,
-                            'ContactEmail'  => $user->email,
-                            'Destination'  => $destinationJson,
-                            'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'HotelWebsite' => $user->hotelwebsite,
+                            'SelfSupplier' => $user->selfsupplier,
+                            'ContactType' => $user->division,
+                            'ContactName' => $user->contactperson,
+                            'ContactDesignation' => $user->designation,
+                            'ContactCountryCode' => $user->countryCode,
+                            'ContactMobile' => $user->phone,
+                            'ContactEmail' => $user->email,
+                            'Destination' => $destinationJson,
+                            'RPK' => $user->id,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Hotel Chain Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1329,51 +1333,48 @@ class DataSyncController extends Controller
     public function companyBankSync()
     {
         try {
-            // ✅ Read all data from MySQL
             $mysqlUsers = DB::connection('mysql')
                 ->table('bankmaster')
                 ->get();
 
             foreach ($mysqlUsers as $user) {
 
-                $uniqueId = !empty($user->id)  ? 'S' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
-
-                // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
                     ->table('others.bank_master')
                     ->updateOrInsert(
-                        ['RPK' => $user->id],  // Match by primary key
+                        ['rpk' => $user->id], // 🔥 Use lowercase
                         [
-                            'BankName'           => $user->bankName,
-                            'AccountNumber'          => $user->accountNumber,
-                            'BranchAddress'          => $user->branchAddress,
-                            'UpiId'          => null,
-                            'AccountType'          => $user->accountType ?? '',
-                            'BeneficiaryName'          => $user->beneficiaryName ?? '',
-                            'BranchIfsc'          => $user->branchIFSC ?? "",
-                            'BranchSwiftCode'          => $user->branchSwiftCode ?? "",
-                            'currencyid'          => $user->currencyId ?? 0,
-                            'purpose'          => $user->purposeRemittance ?? "",
-                            'BusinessType'          => "Domestic",
-                            'ShowHide'          => 1,
-                            'SetDefault'          => 0,
-                            'Status'  => $user->status,
-                            'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'rpk' => $user->id,
+                            'bankname' => $user->bankName,
+                            'accountnumber' => $user->accountNumber,
+                            'branchaddress' => $user->branchAddress,
+                            'upiid' => null,
+                            'accounttype' => $user->accountType ?? '',
+                            'beneficiaryname' => $user->beneficiaryName ?? '',
+                            'branchifsc' => $user->branchIFSC ?? "",
+                            'branchswiftcode' => $user->branchSwiftCode ?? "",
+                            'currencyid' => $user->currencyId ?? 0,
+                            'purpose' => $user->purposeRemittance ?? "",
+                            'businesstype' => "Domestic",
+                            'showhide' => 1,
+                            'setdefault' => 0,
+                            'status' => $user->status,
+                            'addedby' => 1,
+                            'updatedby' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Bank Master Data synced successfully'
             ];
+
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1396,26 +1397,26 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->hotelCategory,
-                            'UploadKeyword'          => $user->uploadKeyword,
-                            'Status'  => 'Active',
+                            'id' => $user->id,
+                            'Name' => $user->hotelCategory,
+                            'UploadKeyword' => $user->uploadKeyword,
+                            'Status' => 'Active',
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Hotel Category Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1438,27 +1439,27 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'UploadKeyword'          => $user->uploadKeyword,
-                            'IsHouseBoat'          => (($user->isHouseBoat ?? null) == 1) ? 'Yes' : 'No',
-                            'Status'  => 'Active',
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'UploadKeyword' => $user->uploadKeyword,
+                            'IsHouseBoat' => (($user->isHouseBoat ?? null) == 1) ? 'Yes' : 'No',
+                            'Status' => 'Active',
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Hotel Type Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1481,26 +1482,26 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'SetDefault'  => ($user->setDefault == 1) ? 'Yes' : 'No',
-                            'Status'  => "Active",
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'SetDefault' => ($user->setDefault == 1) ? 'Yes' : 'No',
+                            'Status' => "Active",
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Hotel Meal Plan Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1516,7 +1517,7 @@ class DataSyncController extends Controller
 
             foreach ($mysqlUsers as $user) {
 
-                $uniqueId = !empty($user->id)  ? 'AIR' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+                $uniqueId = !empty($user->id) ? 'AIR' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
 
                 // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
@@ -1524,26 +1525,26 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->flightName,
-                            'UniqueID'  => $uniqueId,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->flightName,
+                            'UniqueID' => $uniqueId,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Airline Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -1559,7 +1560,7 @@ class DataSyncController extends Controller
 
             foreach ($mysqlUsers as $user) {
 
-                $uniqueId = !empty($user->id)  ? 'TRAI' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+                $uniqueId = !empty($user->id) ? 'TRAI' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
 
                 // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
@@ -1567,26 +1568,26 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->trainName,
-                            'UniqueID'  => $uniqueId,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->trainName,
+                            'UniqueID' => $uniqueId,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Train Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -2035,40 +2036,40 @@ class DataSyncController extends Controller
          | PRELOAD MASTER DATA (FAST LOOKUPS)
          -------------------------------------------------*/
             $destinations = DB::connection('mysql')->table('destinationmaster')->get()->keyBy('name');
-            $countries    = DB::connection('mysql')->table('countrymaster')->get()->keyBy('name');
-            $suppliers    = DB::connection('mysql')->table('suppliersmaster')->get()->keyBy('id');
-            $roomTypes    = DB::connection('mysql')->table('roomtypemaster')->get()->keyBy('id');
-            $mealPlans    = DB::connection('mysql')->table('mealplanmaster')->get()->keyBy('id');
-            $hotelTypes   = DB::connection('mysql')->table('hoteltypemaster')->get()->keyBy('id');
-            $hotelCats    = DB::connection('mysql')->table('hotelcategorymaster')->get()->keyBy('id');
+            $countries = DB::connection('mysql')->table('countrymaster')->get()->keyBy('name');
+            $suppliers = DB::connection('mysql')->table('suppliersmaster')->get()->keyBy('id');
+            $roomTypes = DB::connection('mysql')->table('roomtypemaster')->get()->keyBy('id');
+            $mealPlans = DB::connection('mysql')->table('mealplanmaster')->get()->keyBy('id');
+            $hotelTypes = DB::connection('mysql')->table('hoteltypemaster')->get()->keyBy('id');
+            $hotelCats = DB::connection('mysql')->table('hotelcategorymaster')->get()->keyBy('id');
 
             $hotels = DB::connection('mysql')->table('packagebuilderhotelmaster')->get();
 
             foreach ($hotels as $user) {
                 $hotelCityId = $destinations[$user->hotelCity]->id ?? null;
-                $countryId   = $countries[$user->hotelCountry]->id ?? null;
-                $uniqueId    = 'HOTL' . str_pad($user->id, 6, '0', STR_PAD_LEFT);
+                $countryId = $countries[$user->hotelCountry]->id ?? null;
+                $uniqueId = 'HOTL' . str_pad($user->id, 6, '0', STR_PAD_LEFT);
 
                 /* -------------------------------------------------
              | HOTEL BASIC DETAILS
              -------------------------------------------------*/
                 $hotelBasicDetailsJson = json_encode([
-                    "Verified"        => (int)($user->verified ?? 0),
-                    "HotelGSTN"       => $user->gstn ?? "",
-                    "HotelInfo"       => $user->hotelInfo ?? "",
-                    "HotelLink"       => $user->hoteldetail ?? "",
-                    "HotelType"       => (int)($user->hotelTypeId ?? 0),
-                    "HotelChain"      => (int)($user->hotelChain ?? 0),
-                    "CheckInTime"     => $user->checkInTime ?? "",
-                    "CheckOutTime"    => $user->checkOutTime ?? "",
-                    "HotelPolicy"     => $user->policy ?? "",
-                    "HotelAddress"    => $user->hotelAddress ?? "",
-                    "InternalNote"    => $user->internalNote ?? "",
-                    "HotelCategory"   => (int)($user->hotelCategoryId ?? 0),
-                    "HotelRoomType"   => !empty($user->roomType)
+                    "Verified" => (int) ($user->verified ?? 0),
+                    "HotelGSTN" => $user->gstn ?? "",
+                    "HotelInfo" => $user->hotelInfo ?? "",
+                    "HotelLink" => $user->hoteldetail ?? "",
+                    "HotelType" => (int) ($user->hotelTypeId ?? 0),
+                    "HotelChain" => (int) ($user->hotelChain ?? 0),
+                    "CheckInTime" => $user->checkInTime ?? "",
+                    "CheckOutTime" => $user->checkOutTime ?? "",
+                    "HotelPolicy" => $user->policy ?? "",
+                    "HotelAddress" => $user->hotelAddress ?? "",
+                    "InternalNote" => $user->internalNote ?? "",
+                    "HotelCategory" => (int) ($user->hotelCategoryId ?? 0),
+                    "HotelRoomType" => !empty($user->roomType)
                         ? array_values(array_filter(array_map('trim', explode(',', $user->roomType))))
                         : [],
-                    "HotelAmenities"  => $user->amenities ?? ""
+                    "HotelAmenities" => $user->amenities ?? ""
                 ], JSON_UNESCAPED_UNICODE);
 
                 /* -------------------------------------------------
@@ -2104,7 +2105,7 @@ class DataSyncController extends Controller
                 $rateDetailsList = [];
 
                 foreach ($rates as $r) {
-                    $uuid = (string)\Illuminate\Support\Str::uuid();
+                    $uuid = (string) \Illuminate\Support\Str::uuid();
 
                     $rateDetailsList[] = [
                         "UniqueID" => $uuid,
@@ -2155,7 +2156,7 @@ class DataSyncController extends Controller
                 $hotelSearchBatch = [];
                 foreach ($rateDetailsList as $rateItem) {
                     $start = Carbon::parse($rateItem['ValidFrom']);
-                    $end   = Carbon::parse($rateItem['ValidTo']);
+                    $end = Carbon::parse($rateItem['ValidTo']);
                     while ($start->lte($end)) {
                         $hotelSearchBatch[] = [
                             "ServiceRateUniqueId" => $rateItem['UniqueID'],
@@ -2225,25 +2226,25 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'Status'  => "Active",
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'Status' => "Active",
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Room Type Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -2266,29 +2267,29 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'CountryId'           => $user->country,
-                            'Name'           => $user->name,
-                            'CountryCode'           => $user->currencyCode,
-                            'ConversionRate'           => $user->currencyValue,
-                            'SetDefault'           => $user->setDefault,
-                            'Status'  => "Active",
+                            'id' => $user->id,
+                            'CountryId' => $user->country,
+                            'Name' => $user->name,
+                            'CountryCode' => $user->currencyCode,
+                            'ConversionRate' => $user->currencyValue,
+                            'SetDefault' => $user->setDefault,
+                            'Status' => "Active",
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Currency Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -2311,26 +2312,26 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'SetDefault'           => $user->setDefault,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'SetDefault' => $user->setDefault,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Business Type Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -2353,29 +2354,29 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name ?? "",
-                            'SeasonName'           => $user->name ?? "",
-                            'FromDate'           => $user->fromDate,
-                            'ToDate'           => $user->toDate,
-                            'Default'           => 0,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->name ?? "",
+                            'SeasonName' => $user->name ?? "",
+                            'FromDate' => $user->fromDate,
+                            'ToDate' => $user->toDate,
+                            'Default' => 0,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Season Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -2398,28 +2399,28 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'ServiceType'           => $user->serviceType,
-                            'SacCode'           => $user->sacCode,
-                            'SetDefault'           => $user->setDefault,
-                            'GstSlabId'           => $user->taxSlab,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'ServiceType' => $user->serviceType,
+                            'SacCode' => $user->sacCode,
+                            'SetDefault' => $user->setDefault,
+                            'GstSlabId' => $user->taxSlab,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'HSN/SAC Code Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -2428,49 +2429,47 @@ class DataSyncController extends Controller
     public function gstMasterSync()
     {
         try {
-            // ✅ Read all data from MySQL
             $mysqlUsers = DB::connection('mysql')
                 ->table('gstmaster')
                 ->get();
 
             foreach ($mysqlUsers as $user) {
 
-
-                // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
                     ->table('others.tax_master')
                     ->updateOrInsert(
-                        ['id' => $user->id],  // Match by primary key
+                        ['id' => $user->id],
                         [
-                            'id'           => $user->id,
-                            'ServiceType'           => $user->serviceType,
-                            'TaxSlabName'           => $user->gstSlabName,
-                            'TaxValue'           => $user->gstValue,
-                            'SetDefault'           => $user->setDefault,
-                            'PriceRangeFrom'           => $user->priceRangeFrom,
-                            'PriceRangeTo'           => $user->priceRangeTo,
-                            'Currency'           => $user->currencyId,
-                            'Status'  => $user->status,
-                            //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'id' => $user->id,
+                            'ServiceType' => $user->serviceType ?? '',
+                            'TaxSlabName' => $user->gstSlabName ?? '',
+                            'TaxValue' => $user->gstValue ?? 0,
+                            'SetDefault' => $user->setDefault ?? 0,
+                            'PriceRangeFrom' => $user->priceRangeFrom ?? null,
+                            'PriceRangeTo' => $user->priceRangeTo ?? null,  // 🔥 Safe
+                            'Currency' => $user->currencyId ?? null,
+                            'Status' => $user->status ?? 1,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'GST Tax Master Data synced successfully'
             ];
+
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
     }
+
 
     public function companyAddressMasterSync()
     {
@@ -2489,42 +2488,42 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'CompanyId'           => 1,
-                            'OfficeName'           => $user->name,
-                            'Country'           => $user->countryId,
-                            'State'           => $user->stateId,
-                            'City'           => $user->cityId,
-                            'Address'           => $user->address . " Pin-" . $user->pinCode,
-                            'ContacctPersonName'           => "",
-                            'Email'           => $user->email,
-                            'Phone'           => $user->contactNumber,
-                            'Mobile'           => $user->contactNumber,
-                            'GstNo'           => $user->gstn,
-                            'Currency'           => 0,
-                            'office_type'           => $user->addressType,
-                            'Pan'           => $user->PAN,
-                            'Cin'           => $user->CIN,
-                            'Iec'           => $user->IEC,
-                            'Website'           => $user->web_url,
-                            'CountryCode'           => $user->countryCode,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'CompanyId' => 1,
+                            'OfficeName' => $user->name,
+                            'Country' => $user->countryId,
+                            'State' => $user->stateId,
+                            'City' => $user->cityId,
+                            'Address' => $user->address . " Pin-" . $user->pinCode,
+                            'ContacctPersonName' => "",
+                            'Email' => $user->email,
+                            'Phone' => $user->contactNumber,
+                            'Mobile' => $user->contactNumber,
+                            'GstNo' => $user->gstn,
+                            'Currency' => 0,
+                            'office_type' => $user->addressType,
+                            'Pan' => $user->PAN,
+                            'Cin' => $user->CIN,
+                            'Iec' => $user->IEC,
+                            'Website' => $user->web_url,
+                            'CountryCode' => $user->countryCode,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Company Address Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -2574,14 +2573,14 @@ class DataSyncController extends Controller
             }
 
             $travelData[] = [
-                "Date"            => $dateObj->format('Y-m-d'),
-                "DayNo"           => $dayNo,
-                "Destination"     => $dest,
-                "Enroute"         => null,
-                "Mode"            => $mode, // default
-                "isEnroute"       => false,
+                "Date" => $dateObj->format('Y-m-d'),
+                "DayNo" => $dayNo,
+                "Destination" => $dest,
+                "Enroute" => null,
+                "Mode" => $mode, // default
+                "isEnroute" => false,
                 "DestinationName" => $destinationName,        // you can map later
-                "EnrouteName"     => ""
+                "EnrouteName" => ""
             ];
 
             // increment date by 1 day
@@ -2601,9 +2600,9 @@ class DataSyncController extends Controller
                     ->where('id', $user->companyId)
                     ->first();
 
-                $contactName    = $corporatedetails?->name;
-                $contactEmail   = $this->safeTripleDecode($corporatedetails?->companyEmail ?? '');
-                $contactPhone   = $this->safeTripleDecode($corporatedetails?->companyPhone ?? '');
+                $contactName = $corporatedetails?->name;
+                $contactEmail = $this->safeTripleDecode($corporatedetails?->companyEmail ?? '');
+                $contactPhone = $this->safeTripleDecode($corporatedetails?->companyPhone ?? '');
                 $contactAddress = $corporatedetails?->address1;
             }
         }
@@ -2615,7 +2614,7 @@ class DataSyncController extends Controller
                     ->where('id', $user->companyId)
                     ->first();
 
-                $contactName    = $corporatedetails?->firstName . " " . $corporatedetails?->lastName;
+                $contactName = $corporatedetails?->firstName . " " . $corporatedetails?->lastName;
                 $contactAddress = $corporatedetails?->address1;
             }
         }
@@ -2634,38 +2633,38 @@ class DataSyncController extends Controller
 
 
         return [
-            "QueryID"        => $queryId,
-            "CompanyId"      => 1 ?? '',
-            "ClientName"     => $user->leadPaxName ?? '',
-            "CompanyName"    => $user->companyName ?? "",
-            "UserId"         => $user->addedBy ?? '',
-            "UserName"       => $user->userName ?? '',
-            "UserType"       => $user->userType ?? [],
-            "Budget"         => $user->budget ?? '',
+            "QueryID" => $queryId,
+            "CompanyId" => 1 ?? '',
+            "ClientName" => $user->leadPaxName ?? '',
+            "CompanyName" => $user->companyName ?? "",
+            "UserId" => $user->addedBy ?? '',
+            "UserName" => $user->userName ?? '',
+            "UserType" => $user->userType ?? [],
+            "Budget" => $user->budget ?? '',
             "Header" => [
-                "QueryStatus"   => $user->queryStatus ?? '',
+                "QueryStatus" => $user->queryStatus ?? '',
                 "QueryChangeLog" => [
                     [
                         "ChangeDateTime" => $user->changeDateTime ?? '',
-                        "ChangedByID"    => $user->changedById ?? '',
-                        "ChangeByValue"  => $user->changeByValue ?? '',
+                        "ChangedByID" => $user->changedById ?? '',
+                        "ChangeByValue" => $user->changeByValue ?? '',
                         "ChangeSetDetail" => [
                             [
                                 "ChangeFrom" => $user->changeFrom ?? '',
-                                "ChangeTo"   => $user->changeTo ?? '',
+                                "ChangeTo" => $user->changeTo ?? '',
                             ]
                         ],
                     ]
                 ],
             ],
-            "MealPlan"        => $user->mealPlan ?? '',
-            "MealPlanName"    => $user->mealPlanName ?? '',
-            "Consortia"       => $user->consortia ?? '',
-            "ConsortiaName"   => $user->consortiaName ?? '',
-            "Language"        => $user->language ?? '',
-            "LanguageName"    => $user->languageName ?? '',
-            "ISO"             => $user->iso ?? '',
-            "ISOName"         => $user->isoName ?? '',
+            "MealPlan" => $user->mealPlan ?? '',
+            "MealPlanName" => $user->mealPlanName ?? '',
+            "Consortia" => $user->consortia ?? '',
+            "ConsortiaName" => $user->consortiaName ?? '',
+            "Language" => $user->language ?? '',
+            "LanguageName" => $user->languageName ?? '',
+            "ISO" => $user->iso ?? '',
+            "ISOName" => $user->isoName ?? '',
 
             // Example QueryType (array)
             "QueryType" => [
@@ -2691,16 +2690,16 @@ class DataSyncController extends Controller
             ],
             "TravelDateInfo" => [
                 "ScheduleType" => "Date Wise",
-                "SeasonType"   => $user->seasonType,
-                "SeasonTypeName"   => '',
-                "SeasonYear"   => $user->seasonYear,
-                "TotalNights"  => $total > 0 ? $total - 1 : 0,
-                "TotalNoOfDays"  => $total,
-                "FromDate"     => $startDate,
+                "SeasonType" => $user->seasonType,
+                "SeasonTypeName" => '',
+                "SeasonYear" => $user->seasonYear,
+                "TotalNights" => $total > 0 ? $total - 1 : 0,
+                "TotalNoOfDays" => $total,
+                "FromDate" => $startDate,
                 "FromDateDateWise" => "",
                 "ToDateDateWise" => null,
-                "ToDate"       => $endDate,
-                "TravelData"   => $travelData,
+                "ToDate" => $endDate,
+                "TravelData" => $travelData,
                 "ArrivalDate" => $startDate,
                 "DepartureDate" => $endDate
             ],
@@ -2736,7 +2735,7 @@ class DataSyncController extends Controller
 
         $travelData = [];
         $startDate = $this->fixDate($user->fromDate);
-        $endDate   = $this->fixDate($user->toDate);
+        $endDate = $this->fixDate($user->toDate);
 
         $total = count($destinationIds);
         $dayNo = 1;
@@ -2760,14 +2759,14 @@ class DataSyncController extends Controller
             }
 
             $travelData[] = [
-                "Date"            => $dateObj->format('Y-m-d'),
-                "DayNo"           => $dayNo,
-                "Destination"     => $dest,
-                "Enroute"         => null,
-                "Mode"            => $mode,
-                "isEnroute"       => false,
+                "Date" => $dateObj->format('Y-m-d'),
+                "DayNo" => $dayNo,
+                "Destination" => $dest,
+                "Enroute" => null,
+                "Mode" => $mode,
+                "isEnroute" => false,
                 "DestinationName" => $destinationName,
-                "EnrouteName"     => ""
+                "EnrouteName" => ""
             ];
 
             $dateObj->modify('+1 day');
@@ -2814,8 +2813,8 @@ class DataSyncController extends Controller
         // ------------------------
         return [
             "QuotationNumber" => $queryId . '-A' ?? "",
-            "TourId"          => "",
-            "ReferenceId"     => "",
+            "TourId" => "",
+            "ReferenceId" => "",
             "Header" => [
                 "QuotationStage" => "",
                 "QuotationStatus" => "4",
@@ -2972,7 +2971,7 @@ class DataSyncController extends Controller
                 $prefix = 'BS';
                 // 2) Generate financial year string, e.g. 2025-2026 → "25-26"
                 $currentYear = (int) date('Y');     // e.g. 2025
-                $nextYear   = $currentYear + 1;     // 2026
+                $nextYear = $currentYear + 1;     // 2026
 
                 $fyPart = substr($currentYear, -2) . '-' . substr($nextYear, -2); // "25-26"
 
@@ -2995,42 +2994,42 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'QueryId'           => $queryId,
-                            'ClientType'           => $$clientType ?? 14,
-                            'LeadPax'           => $user->leadPaxName,
-                            'Subject'           => $user->subject,
-                            'FromDate'           => $this->fixDate($user->fromDate),
-                            'TAT'           => $user->tat,
-                            'LeadSource'           => $user->leadsource,
-                            'ToDate'           => $this->fixDate($user->toDate),
+                            'id' => $user->id,
+                            'QueryId' => $queryId,
+                            'ClientType' => $$clientType ?? 14,
+                            'LeadPax' => $user->leadPaxName,
+                            'Subject' => $user->subject,
+                            'FromDate' => $this->fixDate($user->fromDate),
+                            'TAT' => $user->tat,
+                            'LeadSource' => $user->leadsource,
+                            'ToDate' => $this->fixDate($user->toDate),
                             'Priority' => $user->queryPriority == 1 ? 'Low' : ($user->queryPriority == 2 ? 'Medium' : ($user->queryPriority == 3 ? 'High' : 'Low')),
-                            'TourId'           => $user->tourId,
-                            'ReferenceId'           => 0,
-                            'QueryStatus'           => $user->queryStatus,
-                            'CompanyId'           => 1,
-                            'Fk_QueryId'           => 0,
-                            'Type'           => $user->travelType,
+                            'TourId' => $user->tourId,
+                            'ReferenceId' => 0,
+                            'QueryStatus' => $user->queryStatus,
+                            'CompanyId' => 1,
+                            'Fk_QueryId' => 0,
+                            'Type' => $user->travelType,
                             'QueryJson' => json_encode($this->buildQueryJson($user, $queryId)),
                             'QuotationJson' => json_encode($this->buildQuotationJson($user, $queryId)),
                             'FinalQuotationAfterOperation' => json_encode($this->buildQuotationJson($user, $queryId)),
                             //'Status'  => $user->status,
-                            'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'RPK' => $user->id,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Query Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -3072,31 +3071,31 @@ class DataSyncController extends Controller
                 }
 
                 // 🔹 Unique ID — if missing, make from MySQL ID
-                $uniqueId = !empty($user->id)  ? 'HOTL' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+                $uniqueId = !empty($user->id) ? 'HOTL' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
 
                 // 🔹 Build Hotel Basic Details JSON
                 $hotelBasicDetails = [
-                    "Verified"        => (int)($user->verified ?? 0),
-                    "HotelGSTN"       => $user->gstn ?? "",
-                    "HotelInfo"       => $user->hotelInfo ?? "",
-                    "HotelLink"       => $user->hoteldetail ?? "",
-                    "HotelType"       => (int)($user->hotelTypeId ?? 0),
-                    "HotelChain"      => (int)($user->hotelChain ?? 0),
-                    "CheckInTime"     => $user->checkInTime ?? "",
-                    "HotelPolicy"     => $user->policy ?? "",
-                    "CheckOutTime"    => $user->checkOutTime ?? "",
-                    "HotelAddress"    => $user->hotelAddress ?? "",
-                    "InternalNote"    => $user->internalNote ?? "",
-                    "HotelCategory"   => (int)($user->hotelCategoryId ?? 0),
+                    "Verified" => (int) ($user->verified ?? 0),
+                    "HotelGSTN" => $user->gstn ?? "",
+                    "HotelInfo" => $user->hotelInfo ?? "",
+                    "HotelLink" => $user->hoteldetail ?? "",
+                    "HotelType" => (int) ($user->hotelTypeId ?? 0),
+                    "HotelChain" => (int) ($user->hotelChain ?? 0),
+                    "CheckInTime" => $user->checkInTime ?? "",
+                    "HotelPolicy" => $user->policy ?? "",
+                    "CheckOutTime" => $user->checkOutTime ?? "",
+                    "HotelAddress" => $user->hotelAddress ?? "",
+                    "InternalNote" => $user->internalNote ?? "",
+                    "HotelCategory" => (int) ($user->hotelCategoryId ?? 0),
                     // Convert comma-separated room IDs to array
-                    "HotelRoomType"   => !empty($user->roomType)
+                    "HotelRoomType" => !empty($user->roomType)
                         ? array_values(array_filter(
                             array_map('trim', explode(',', $user->roomType)),
                             fn($v) => $v !== ""
                         ))
                         : [],
 
-                    "HotelAmenities"  => $user->amenities ?? ""
+                    "HotelAmenities" => $user->amenities ?? ""
                 ];
 
                 $hotelBasicDetailsJson = json_encode($hotelBasicDetails);
@@ -3112,16 +3111,16 @@ class DataSyncController extends Controller
 
                 foreach ($hotelContacts as $c) {
                     $contactDetailsArray[] = [
-                        "Division"       => $c->division,
-                        "NameTitle"      => $c->nameTitle,
-                        "FirstName"      => $c->firstName,
-                        "LastName"       => $c->lastName,
-                        "Designation"    => $c->designation,
-                        "CountryCode"    => $c->countryCode,
-                        "Phone1"         => $c->phone,
-                        "Phone2"         => $c->phone2,
-                        "Phone3"         => $c->phone3,
-                        "Email"          => $c->email,
+                        "Division" => $c->division,
+                        // "NameTitle" => $c->nameTitle,
+                        // "FirstName" => $c->firstName,
+                        "LastName" => $c->lastName,
+                        "Designation" => $c->designation,
+                        "CountryCode" => $c->countryCode,
+                        "Phone1" => $c->phone,
+                        "Phone2" => $c->phone2,
+                        "Phone3" => $c->phone3,
+                        "Email" => $c->email,
                         "SecondaryEmail" => $c->email2,
                     ];
                 }
@@ -3129,7 +3128,7 @@ class DataSyncController extends Controller
                 // Convert to JSON (empty array if no contacts)
                 $hotelContactJson = json_encode($contactDetailsArray, JSON_UNESCAPED_UNICODE);
 
-                $rateRows  = DB::connection('mysql')
+                $rateRows = DB::connection('mysql')
                     ->table('dmcroomtariff')
                     ->where('serviceid', $user->id) // serviceid = HotelId
                     ->get();
@@ -3223,18 +3222,18 @@ class DataSyncController extends Controller
                             [
                                 "RoomBedTypeId" => 3,
                                 "RoomBedTypeName" => "SGL Room",
-                                "RoomCost" => (float)$rr->singleoccupancy,
+                                "RoomCost" => (float) $rr->singleoccupancy,
                                 "RoomTaxValue" => "0%",
                                 "RoomCostRateValue" => 0,
-                                "RoomTotalCost" => (float)$rr->singleoccupancy
+                                "RoomTotalCost" => (float) $rr->singleoccupancy
                             ],
                             [
                                 "RoomBedTypeId" => 4,
                                 "RoomBedTypeName" => "DBL Room",
-                                "RoomCost" => (float)$rr->doubleoccupancy,
+                                "RoomCost" => (float) $rr->doubleoccupancy,
                                 "RoomTaxValue" => "0%",
                                 "RoomCostRateValue" => 0,
-                                "RoomTotalCost" => (float)$rr->doubleoccupancy
+                                "RoomTotalCost" => (float) $rr->doubleoccupancy
                             ],
                             [
                                 "RoomBedTypeId" => 5,
@@ -3247,26 +3246,26 @@ class DataSyncController extends Controller
                             [
                                 "RoomBedTypeId" => 6,
                                 "RoomBedTypeName" => "TPL Room",
-                                "RoomCost" => (float)$rr->tripleoccupancy,
+                                "RoomCost" => (float) $rr->tripleoccupancy,
                                 "RoomTaxValue" => "0%",
                                 "RoomCostRateValue" => 0,
-                                "RoomTotalCost" => (float)$rr->tripleoccupancy
+                                "RoomTotalCost" => (float) $rr->tripleoccupancy
                             ],
                             [
                                 "RoomBedTypeId" => 7,
                                 "RoomBedTypeName" => "ExtraBed(A)",
-                                "RoomCost" => (float)$rr->extraBed,
+                                "RoomCost" => (float) $rr->extraBed,
                                 "RoomTaxValue" => "0%",
                                 "RoomCostRateValue" => 0,
-                                "RoomTotalCost" => (float)$rr->extraBed
+                                "RoomTotalCost" => (float) $rr->extraBed
                             ],
                             [
                                 "RoomBedTypeId" => 8,
                                 "RoomBedTypeName" => "ExtraBed(C)",
-                                "RoomCost" => (float)$rr->childwithextrabed,
+                                "RoomCost" => (float) $rr->childwithextrabed,
                                 "RoomTaxValue" => "0%",
                                 "RoomCostRateValue" => 0,
-                                "RoomTotalCost" => (float)$rr->childwithextrabed
+                                "RoomTotalCost" => (float) $rr->childwithextrabed
                             ],
                         ];
 
@@ -3274,31 +3273,31 @@ class DataSyncController extends Controller
                         //mealType
                         $mealTypes = [
                             [
-                                "MealTypeId"        => 1,
-                                "MealCost"          => (float)$rr->breakfast,
-                                "MealTypeName"      => "Breakfast",
-                                "MealTaxSlabName"   => "IT",
-                                "MealTaxValue"      => 0,
+                                "MealTypeId" => 1,
+                                "MealCost" => (float) $rr->breakfast,
+                                "MealTypeName" => "Breakfast",
+                                "MealTaxSlabName" => "IT",
+                                "MealTaxValue" => 0,
                                 "MealCostRateValue" => 0,
-                                "MealTotalCost"     => (float)$rr->breakfast
+                                "MealTotalCost" => (float) $rr->breakfast
                             ],
                             [
-                                "MealTypeId"        => 3,
-                                "MealCost"          => (float)$rr->lunch,
-                                "MealTypeName"      => "Lunch",
-                                "MealTaxSlabName"   => "IT",
-                                "MealTaxValue"      => 0,
+                                "MealTypeId" => 3,
+                                "MealCost" => (float) $rr->lunch,
+                                "MealTypeName" => "Lunch",
+                                "MealTaxSlabName" => "IT",
+                                "MealTaxValue" => 0,
                                 "MealCostRateValue" => 0,
-                                "MealTotalCost"     => (float)$rr->lunch
+                                "MealTotalCost" => (float) $rr->lunch
                             ],
                             [
-                                "MealTypeId"        => 2,
-                                "MealCost"          => (float)$rr->dinner,
-                                "MealTypeName"      => "Dinner",
-                                "MealTaxSlabName"   => "IT",
-                                "MealTaxValue"      => 0,
+                                "MealTypeId" => 2,
+                                "MealCost" => (float) $rr->dinner,
+                                "MealTypeName" => "Dinner",
+                                "MealTaxSlabName" => "IT",
+                                "MealTaxValue" => 0,
                                 "MealCostRateValue" => 0,
-                                "MealTotalCost"     => (float)$rr->dinner
+                                "MealTotalCost" => (float) $rr->dinner
                             ]
                         ];
 
@@ -3313,27 +3312,27 @@ class DataSyncController extends Controller
                             "HotelCategoryName" => $hotelCategoryName,
                             "ValidFrom" => $rr->fromDate,
                             "ValidTo" => $rr->toDate,
-                            "MarketTypeId" => (int)$rr->marketType,
+                            "MarketTypeId" => (int) $rr->marketType,
                             "MarketTypeName" => "",
-                            "PaxTypeId" => (int)$rr->paxType,
+                            "PaxTypeId" => (int) $rr->paxType,
                             "PaxTypeName" => "",
-                            "TarrifeTypeId" => (int)$rr->tarifType,
+                            "TarrifeTypeId" => (int) $rr->tarifType,
                             "TarrifeTypeName" => "",
                             "HotelChainId" => "",
                             "HotelChainName" => "",
                             "UserId" => "",
                             "UserName" => "",
-                            "SeasonTypeID" => (int)$rr->seasonType,
+                            "SeasonTypeID" => (int) $rr->seasonType,
                             "SeasonTypeName" => "",
                             "SeasonYear" => $rr->seasonYear,
                             "WeekendDays" => null,
                             "WeekendDaysName" => null,
                             "DayList" => [],
-                            "RoomTypeId" => (int)$rr->roomType,
+                            "RoomTypeId" => (int) $rr->roomType,
                             "RoomTypeName" => $roomTypeName,
                             "MealPlanId" => $rr->mealPlan,
                             "MealPlanName" => $mealPlanName,
-                            "CurrencyId" => (int)$rr->currencyId,
+                            "CurrencyId" => (int) $rr->currencyId,
                             "CurrencyName" => "INR",
                             "CurrencyConversionRate" => "",
                             "RoomTaxSlabId" => "",
@@ -3381,10 +3380,10 @@ class DataSyncController extends Controller
                         foreach ($rateDetailsList as $rateItem) {
                             // Extract dates
                             $startDate = Carbon::parse($rateItem['ValidFrom']);
-                            $endDate   = Carbon::parse($rateItem['ValidTo']);
+                            $endDate = Carbon::parse($rateItem['ValidTo']);
 
-                            $destinationUniqueID = !empty($hotelCityId)  ? 'DES' . str_pad($hotelCityId, 6, '0', STR_PAD_LEFT) : '';
-                            $supplierUniqueID = !empty($rateItem['SupplierId'])  ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
+                            $destinationUniqueID = !empty($hotelCityId) ? 'DES' . str_pad($hotelCityId, 6, '0', STR_PAD_LEFT) : '';
+                            $supplierUniqueID = !empty($rateItem['SupplierId']) ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
 
                             // Loop day-by-day
                             while ($startDate->lte($endDate)) {
@@ -3394,21 +3393,21 @@ class DataSyncController extends Controller
                                     ->updateOrInsert(
                                         [
                                             "ServiceRateUniqueId" => $rateItem['UniqueID'],  // unique per rate
-                                            "HotelID"             => $uniqueId,
-                                            "date"                => $startDate->format("Y-m-d")
+                                            "HotelID" => $uniqueId,
+                                            "date" => $startDate->format("Y-m-d")
                                         ],
                                         [
                                             "DestinationID" => $destinationUniqueID,
                                             //"RoomBedType"   => json_encode($rateItem['RoomBedType'], JSON_UNESCAPED_UNICODE),
-                                            "SupplierID"    => $supplierUniqueID,
-                                            "CompanyID"     => 0,
-                                            "CurrencyID"    => $rateItem['CurrencyId'],
-                                            "RateJson"      => $rateJson,
-                                            "Status"        => "Active",
-                                            "AddedBy"       => 1,
-                                            "UpdatedBy"     => 1,
-                                            "created_at"    => now(),
-                                            "updated_at"    => now()
+                                            "SupplierID" => $supplierUniqueID,
+                                            "CompanyID" => 0,
+                                            "CurrencyID" => $rateItem['CurrencyId'],
+                                            "RateJson" => $rateJson,
+                                            "Status" => "Active",
+                                            "AddedBy" => 1,
+                                            "UpdatedBy" => 1,
+                                            "created_at" => now(),
+                                            "updated_at" => now()
                                         ]
                                     );
                                 ///update
@@ -3424,38 +3423,38 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'HotelName'          => $user->hotelName,
-                            'SelfSupplier'  => $user->supplier,
-                            'HotelCountry'  => $countryId,
-                            'HotelCity'  => $hotelCityId,
-                            'HotelBasicDetails'  => $hotelBasicDetailsJson,
-                            'HotelContactDetails'  => $hotelContactJson,
-                            'RateJson'  => $rateJson,
-                            'UniqueID'  => $uniqueId,
-                            'Destination'  => $hotelCityId,
-                            'default'  => 'No',
-                            'SupplierId'  => $user->supplierId,
-                            'HotelTypeId'  => $user->hotelTypeId,
-                            'HotelAddress'  => $user->hotelAddress,
-                            'HotelCategory'  => $user->hotelCategoryId,
+                            'id' => $user->id,
+                            'HotelName' => $user->hotelName,
+                            'SelfSupplier' => $user->supplier,
+                            'HotelCountry' => $countryId,
+                            'HotelCity' => $hotelCityId,
+                            'HotelBasicDetails' => $hotelBasicDetailsJson,
+                            'HotelContactDetails' => $hotelContactJson,
+                            'RateJson' => $rateJson,
+                            'UniqueID' => $uniqueId,
+                            'Destination' => $hotelCityId,
+                            'default' => 'No',
+                            'SupplierId' => $user->supplierId,
+                            'HotelTypeId' => $user->hotelTypeId,
+                            'HotelAddress' => $user->hotelAddress,
+                            'HotelCategory' => $user->hotelCategoryId,
                             //'Status'  => ($user->status == 1) ? 'Active' : 'Inactive',
-                            'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'RPK' => $user->id,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Hotel Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -3482,7 +3481,7 @@ class DataSyncController extends Controller
                 $prefix = 'BS';
                 // 2) Generate financial year string, e.g. 2025-2026 → "25-26"
                 $currentYear = (int) date('Y');     // e.g. 2025
-                $nextYear   = $currentYear + 1;     // 2026
+                $nextYear = $currentYear + 1;     // 2026
 
                 $fyPart = substr($currentYear, -2) . '-' . substr($nextYear, -2); // "25-26"
 
@@ -3586,7 +3585,7 @@ class DataSyncController extends Controller
                 ////////////////////
 
                 $total = $user->totalTourCost;
-                $total = is_numeric($total) ? (float)$total : 0;
+                $total = is_numeric($total) ? (float) $total : 0;
                 $total = round($total, 2);
 
                 $particularRows = DB::connection('mysql')
@@ -3596,29 +3595,29 @@ class DataSyncController extends Controller
                 $particulars = [];
 
                 foreach ($particularRows as $row) {
-                    $amount = is_numeric($row->amount) ? (float)$row->amount : 0;
-                    $totalamount = is_numeric($row->totalamount) ? (float)$row->totalamount : 0;
-                    $totalTourCost = is_numeric($row->totalTourCost) ? (float)$row->totalTourCost : 0;
-                    $totalCostWithoutGST = is_numeric($row->totalCostWithoutGST) ? (float)$row->totalCostWithoutGST : 0;
+                    $amount = is_numeric($row->amount) ? (float) $row->amount : 0;
+                    $totalamount = is_numeric($row->totalamount) ? (float) $row->totalamount : 0;
+                    $totalTourCost = is_numeric($row->totalTourCost) ? (float) $row->totalTourCost : 0;
+                    $totalCostWithoutGST = is_numeric($row->totalCostWithoutGST) ? (float) $row->totalCostWithoutGST : 0;
 
                     $taxVlaue = $row->gstTax / 2;
 
                     $particulars[] = [
                         "description" => $row->particularsubject ?? '',
                         "ParticularName" => $row->particularsubject ?? '',
-                        "Pax"            => $row->totalPax ?? '',
-                        "HSN"            => $row->hsnCodeId ?? '',
-                        "SAC"            => $row->hsnCodeId ?? '',
-                        "Amount"         => number_format($amount, 2),
-                        "Tcs"            => "%",
-                        "Tax"            => "%",
-                        "TotalAmount"    => number_format($totalamount, 2),
-                        "GSTId"          => ($row->igst != '') ? $row->gstTax : 0,
-                        "StateChange"    => $row->gstType == 1 ? "Same State" : ($row->gstType == 2 ? "Other State" : ""),
-                        "Igst"     => ($row->igst != '') ? $row->gstTax : 0,
-                        "IgstAmount"     => number_format(is_numeric($row->igst) ? $row->igst : 0, 2),
-                        "CgstAmount"     => number_format(is_numeric($row->cgst) ? $row->cgst : 0, 2),
-                        "SgstAmount"     => number_format(is_numeric($row->SGST) ? $row->SGST : 0, 2),
+                        "Pax" => $row->totalPax ?? '',
+                        "HSN" => $row->hsnCodeId ?? '',
+                        "SAC" => $row->hsnCodeId ?? '',
+                        "Amount" => number_format($amount, 2),
+                        "Tcs" => "%",
+                        "Tax" => "%",
+                        "TotalAmount" => number_format($totalamount, 2),
+                        "GSTId" => ($row->igst != '') ? $row->gstTax : 0,
+                        "StateChange" => $row->gstType == 1 ? "Same State" : ($row->gstType == 2 ? "Other State" : ""),
+                        "Igst" => ($row->igst != '') ? $row->gstTax : 0,
+                        "IgstAmount" => number_format(is_numeric($row->igst) ? $row->igst : 0, 2),
+                        "CgstAmount" => number_format(is_numeric($row->cgst) ? $row->cgst : 0, 2),
+                        "SgstAmount" => number_format(is_numeric($row->SGST) ? $row->SGST : 0, 2),
                         "Cgst" => $taxVlaue ?? 0,
                         "Sgst" => $taxVlaue ?? 0,
                         "ExcludeGstorNot" => ($row->isTaxableVal == 1) ? 'Yes' : 'No',
@@ -3626,7 +3625,7 @@ class DataSyncController extends Controller
                         "IsTaxable" => ($row->isTaxableVal == 1) ? 'Yes' : 'No',
                         "TaxType" => ($row->isExclusiveTax == 2) ? 'Inclusive' : 'Exclusive',
                         "ppCost" => number_format($amount, 2),
-                        "TaxableValue"  => number_format($totalCostWithoutGST, 2),
+                        "TaxableValue" => number_format($totalCostWithoutGST, 2),
                     ];
                 }
                 // -------------------------------
@@ -3716,38 +3715,38 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'InvoiceId'           => $invoiceNumber,
-                            'Type'           => $user->invoiceTitle == 1 ? 'Tax' : ($user->invoiceTitle == 2 ? 'PI' : ''),
-                            'QueryId'           => $queryId,
-                            'QuotationNo'           => $queryId . "-A Final",
-                            'TourId'           => $user->tourId ?? '',
-                            'ReferenceId'           => '',
+                            'id' => $user->id,
+                            'InvoiceId' => $invoiceNumber,
+                            'Type' => $user->invoiceTitle == 1 ? 'Tax' : ($user->invoiceTitle == 2 ? 'PI' : ''),
+                            'QueryId' => $queryId,
+                            'QuotationNo' => $queryId . "-A Final",
+                            'TourId' => $user->tourId ?? '',
+                            'ReferenceId' => '',
                             'InvoiceDetails' => json_encode($invoiceDetails, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                            'PdfFileLink'           => '',
-                            'CompanyId'           => 1,
-                            'OperationId'           => 0,
-                            'DepartmentId'           => 0,
-                            'FinalPayment'           => $total,
-                            'InvoiceType'           => $user->invoiceFormat == 11 ? 'ItemWise' : ($user->invoiceFormat == 1 ? 'FileWise' : ''),
-                            'Html'           => "",
+                            'PdfFileLink' => '',
+                            'CompanyId' => 1,
+                            'OperationId' => 0,
+                            'DepartmentId' => 0,
+                            'FinalPayment' => $total,
+                            'InvoiceType' => $user->invoiceFormat == 11 ? 'ItemWise' : ($user->invoiceFormat == 1 ? 'FileWise' : ''),
+                            'Html' => "",
                             //'Status'  => $user->status,
-                            'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'RPK' => $user->id,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Invoice Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -3769,39 +3768,39 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'ParentId'           => $user->corporateId,
-                            'OfficeName'           => "Head Office",
+                            'id' => $user->id,
+                            'ParentId' => $user->corporateId,
+                            'OfficeName' => "Head Office",
                             //'MetDuring'           => "",
-                            'Title'           => "",
-                            'FirstName'           => $user->contactPerson ?? '',
-                            'LastName'           => $user->lastName ?? '',
-                            'Email'           => $this->safeTripleDecode($user->email) ?? '',
-                            'Phone'           => $this->safeTripleDecode($user->phone) ?? '',
-                            'MobileNo'           => $this->safeTripleDecode($user->phone) ?? '',
-                            'Designation'           => $user->designation ?? '',
+                            'Title' => "",
+                            'FirstName' => $user->contactPerson ?? '',
+                            'LastName' => $user->lastName ?? '',
+                            'Email' => $this->safeTripleDecode($user->email) ?? '',
+                            'Phone' => $this->safeTripleDecode($user->phone) ?? '',
+                            'MobileNo' => $this->safeTripleDecode($user->phone) ?? '',
+                            'Designation' => $user->designation ?? '',
                             'Division' => isset($user->division) && is_numeric($user->division)
                                 ? (int) $user->division
                                 : null,
-                            'CountryCode'          => $user->countryCode,
-                            'type'  => 'Agent',
-                            'Status'          => 'Yes',
+                            'CountryCode' => $user->countryCode,
+                            'type' => 'Agent',
+                            'Status' => 'Yes',
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Agent Contact Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -3829,7 +3828,7 @@ class DataSyncController extends Controller
                         ->where('name', $user->entranceCity)
                         ->first();
 
-                    $destinationId  = $destination->id ?? null;
+                    $destinationId = $destination->id ?? null;
                     $destinationName = $destination->name ?? "";
                 }
 
@@ -3864,13 +3863,13 @@ class DataSyncController extends Controller
                 $header = [
                     "RateChangeLog" => [
                         [
-                            "ChangeDateTime"   => "",
-                            "ChangedByID"      => "",
-                            "ChangeByValue"    => "",
-                            "ChangeSetDetail"  => [
+                            "ChangeDateTime" => "",
+                            "ChangedByID" => "",
+                            "ChangeByValue" => "",
+                            "ChangeSetDetail" => [
                                 [
                                     "ChangeFrom" => "",
-                                    "ChangeTo"   => ""
+                                    "ChangeTo" => ""
                                 ]
                             ]
                         ]
@@ -3902,32 +3901,32 @@ class DataSyncController extends Controller
                     $rateUUID = \Illuminate\Support\Str::uuid()->toString();
 
                     $rateDetails[] = [
-                        "UniqueID"               => $rateUUID,
-                        "SupplierId"             => (int)$r->supplierId,
-                        "SupplierName"           => $supplierName,
-                        "NationalityId"          => (int)$r->nationality,
-                        "NationalityName"        => $nationalityName,
-                        "ValidFrom"              => $r->fromDate,
-                        "ValidTo"                => $r->toDate,
-                        "CurrencyId"             => (int)$r->currencyId,
-                        "CurrencyName"           => "",
+                        "UniqueID" => $rateUUID,
+                        "SupplierId" => (int) $r->supplierId,
+                        "SupplierName" => $supplierName,
+                        "NationalityId" => (int) $r->nationality,
+                        "NationalityName" => $nationalityName,
+                        "ValidFrom" => $r->fromDate,
+                        "ValidTo" => $r->toDate,
+                        "CurrencyId" => (int) $r->currencyId,
+                        "CurrencyName" => "",
                         "CurrencyConversionName" => "",
-                        "IndianAdultEntFee"      => (string)$r->adultCost,
-                        "IndianChildEntFee"      => (string)$r->childCost,
-                        "ForeignerAdultEntFee"   => (string)$r->adultCost,
-                        "ForeignerChildEntFee"   => (string)$r->childCost,
-                        "TaxSlabId"              => (int)$r->gstTax,
-                        "TaxSlabName"            => "IT",
-                        "TaxSlabVal"             => "0",
-                        "TotalCost"              => 0,
-                        "Policy"                 => "",
-                        "TAC"                    => "",
-                        "Remarks"                => "",
-                        "Status"                 => (string)$r->status,
-                        "AddedBy"                => 0,
-                        "UpdatedBy"              => 0,
-                        "AddedDate"              => now(),
-                        "UpdatedDate"            => now()
+                        "IndianAdultEntFee" => (string) $r->adultCost,
+                        "IndianChildEntFee" => (string) $r->childCost,
+                        "ForeignerAdultEntFee" => (string) $r->adultCost,
+                        "ForeignerChildEntFee" => (string) $r->childCost,
+                        "TaxSlabId" => (int) $r->gstTax,
+                        "TaxSlabName" => "IT",
+                        "TaxSlabVal" => "0",
+                        "TotalCost" => 0,
+                        "Policy" => "",
+                        "TAC" => "",
+                        "Remarks" => "",
+                        "Status" => (string) $r->status,
+                        "AddedBy" => 0,
+                        "UpdatedBy" => 0,
+                        "AddedDate" => now(),
+                        "UpdatedDate" => now()
                     ];
                 }
 
@@ -3939,17 +3938,17 @@ class DataSyncController extends Controller
 
                 if (!empty($rateDetails)) {
                     $rateJsonStructure = [
-                        "MonumentId"      => $user->id,
-                        "MonumentUUID"    => $uniqueId,
-                        "MonumentName"    => $user->entranceName,
-                        "DestinationID"   => $destinationId,
+                        "MonumentId" => $user->id,
+                        "MonumentUUID" => $uniqueId,
+                        "MonumentName" => $user->entranceName,
+                        "DestinationID" => $destinationId,
                         "DestinationName" => $destinationName,
-                        "CompanyId"       => "",
-                        "CompanyName"     => "",
-                        "Header"          => $header,
-                        "Data"            => [
+                        "CompanyId" => "",
+                        "CompanyName" => "",
+                        "Header" => $header,
+                        "Data" => [
                             [
-                                "Total"       => count($rateDetails),
+                                "Total" => count($rateDetails),
                                 "RateDetails" => $rateDetails
                             ]
                         ]
@@ -3962,10 +3961,10 @@ class DataSyncController extends Controller
                         foreach ($rateDetails as $rateItem) {
                             // Extract dates
                             $startDate = Carbon::parse($rateItem['ValidFrom']);
-                            $endDate   = Carbon::parse($rateItem['ValidTo']);
+                            $endDate = Carbon::parse($rateItem['ValidTo']);
 
-                            $destinationUniqueID = !empty($destinationId)  ? 'DES' . str_pad($destinationId, 6, '0', STR_PAD_LEFT) : '';
-                            $supplierUniqueID = !empty($rateItem['SupplierId'])  ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
+                            $destinationUniqueID = !empty($destinationId) ? 'DES' . str_pad($destinationId, 6, '0', STR_PAD_LEFT) : '';
+                            $supplierUniqueID = !empty($rateItem['SupplierId']) ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT) : '';
 
                             // Loop day-by-day
                             while ($startDate->lte($endDate)) {
@@ -3975,21 +3974,21 @@ class DataSyncController extends Controller
                                     ->updateOrInsert(
                                         [
                                             "RateUniqueId" => $rateItem['UniqueID'],  // unique per rate
-                                            "MonumentUID"             => $uniqueId,
-                                            "Date"                => $startDate->format("Y-m-d")
+                                            "MonumentUID" => $uniqueId,
+                                            "Date" => $startDate->format("Y-m-d")
                                         ],
                                         [
                                             "Destination" => $destinationUniqueID,
                                             //"RoomBedType"   => json_encode($rateItem['RoomBedType'], JSON_UNESCAPED_UNICODE),
-                                            "SupplierUID"    => $supplierUniqueID,
-                                            "CompanyId"     => 0,
-                                            "Currency"    => $rateItem['CurrencyId'],
-                                            "RateJson"      => $rateJson,
-                                            "Status"        => 1,
-                                            "AddedBy"       => 1,
-                                            "UpdatedBy"     => 1,
-                                            "created_at"    => now(),
-                                            "updated_at"    => now()
+                                            "SupplierUID" => $supplierUniqueID,
+                                            "CompanyId" => 0,
+                                            "Currency" => $rateItem['CurrencyId'],
+                                            "RateJson" => $rateJson,
+                                            "Status" => 1,
+                                            "AddedBy" => 1,
+                                            "UpdatedBy" => 1,
+                                            "created_at" => now(),
+                                            "updated_at" => now()
                                         ]
                                     );
                                 ///update
@@ -4003,18 +4002,18 @@ class DataSyncController extends Controller
                 // PREPARE INSERT DATA
                 //------------------------------------
                 $updateData = [
-                    'id'             => $user->id,
-                    'MonumentName'   => $user->entranceName,
-                    'Destination'    => $destinationId,
-                    'TransferType'   => $user->transferType,
-                    'Default'        => $user->isDefault,
-                    'Status'         => $user->status,
+                    'id' => $user->id,
+                    'MonumentName' => $user->entranceName,
+                    'Destination' => $destinationId,
+                    'TransferType' => $user->transferType,
+                    'Default' => $user->isDefault,
+                    'Status' => $user->status,
                     'JsonWeekendDays' => $closeDaysnameJson,
-                    'UniqueID'       => $uniqueId,
-                    'AddedBy'        => 1,
-                    'UpdatedBy'      => 1,
-                    'created_at'     => now(),
-                    'updated_at'     => now(),
+                    'UniqueID' => $uniqueId,
+                    'AddedBy' => 1,
+                    'UpdatedBy' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
 
                 // VERY IMPORTANT:
@@ -4040,7 +4039,7 @@ class DataSyncController extends Controller
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -4081,10 +4080,10 @@ class DataSyncController extends Controller
                 $rawGender = strtolower(trim($user->gender ?? ''));
 
                 $gender = match ($rawGender) {
-                    'Male', 'm'                 => 'Male',
-                    'Female', 'f', 'female'    => 'Female',
-                    'other', 'o'                => 'Other',
-                    default                     => 'Male', // ✅ REQUIRED because Gender is NOT NULL
+                    'Male', 'm' => 'Male',
+                    'Female', 'f', 'female' => 'Female',
+                    'other', 'o' => 'Other',
+                    default => 'Male', // ✅ REQUIRED because Gender is NOT NULL
                 };
 
                 DB::connection('pgsql')
@@ -4092,47 +4091,47 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id], // primary key sync
                         [
-                            'Title'             => $title,
-                            'ContactType'       => $contactType,
-                            'FirstName'         => $user->firstName ?? null,
-                            'MiddleName'        => $user->middleName ?? null,
-                            'LastName'          => $user->lastName ?? null,
+                            'Title' => $title,
+                            'ContactType' => $contactType,
+                            'FirstName' => $user->firstName ?? null,
+                            'MiddleName' => $user->middleName ?? null,
+                            'LastName' => $user->lastName ?? null,
 
                             // 🔢 Integer-safe fields
-                            'MarketType'        => is_numeric($user->marketType ?? null) ? (int)$user->marketType : null,
-                            'Nationality'       => is_numeric($user->nationalityId ?? null) ? (int)$user->nationalityId : null,
-                            'Country'           => is_numeric($user->countryId ?? null) ? (int)$user->countryId : null,
-                            'State'             => is_numeric($user->stateId ?? null) ? (int)$user->stateId : null,
-                            'City'              => is_numeric($user->cityId ?? null) ? (int)$user->cityId : null,
+                            'MarketType' => is_numeric($user->marketType ?? null) ? (int) $user->marketType : null,
+                            'Nationality' => is_numeric($user->nationalityId ?? null) ? (int) $user->nationalityId : null,
+                            'Country' => is_numeric($user->countryId ?? null) ? (int) $user->countryId : null,
+                            'State' => is_numeric($user->stateId ?? null) ? (int) $user->stateId : null,
+                            'City' => is_numeric($user->cityId ?? null) ? (int) $user->cityId : null,
 
                             // ✅ Fixed Gender
-                            'Gender'            => $gender,
+                            'Gender' => $gender,
 
                             // ✅ Dates
-                            'DOB'               => $this->fixDate($user->birthDate ?? null),
-                            'AnniversaryDate'   => $this->fixDate($user->anniversaryDate ?? null),
-                            'TourId'          => $user->tourId ?? null,
-                            'QueryId'          => $user->queryId ?? null,
-                            'Remark1'          => $user->remark1 ?? null,
-                            'EmergencyContactNumber'          => $user->emergencyContact ?? null,
-                            'Agent'          => $user->agentName ?? null,
-                            'UniqueId'          => $uniqueId,
-                            'Status'            => is_numeric($user->status ?? null) ? (int)$user->status : 1,
+                            'DOB' => $this->fixDate($user->birthDate ?? null),
+                            'AnniversaryDate' => $this->fixDate($user->anniversaryDate ?? null),
+                            'TourId' => $user->tourId ?? null,
+                            'QueryId' => $user->queryId ?? null,
+                            'Remark1' => $user->remark1 ?? null,
+                            'EmergencyContactNumber' => $user->emergencyContact ?? null,
+                            'Agent' => $user->agentName ?? null,
+                            'UniqueId' => $uniqueId,
+                            'Status' => is_numeric($user->status ?? null) ? (int) $user->status : 1,
 
-                            'created_at'        => now(),
-                            'updated_at'        => now(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Direct Client data synced successfully'
             ];
         } catch (\Exception $e) {
 
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
@@ -4155,25 +4154,25 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],  // Match by primary key
                         [
-                            'id'           => $user->id,
-                            'Name'           => $user->name,
-                            'Status'  => $user->status,
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'Status' => $user->status,
                             //'RPK'  => $user->id,
-                            'AddedBy'     => 1,
-                            'UpdatedBy'     => 1,
-                            'created_at'     => now(),
-                            'updated_at'     => now(),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]
                     );
             }
 
             return [
-                'status'  => true,
+                'status' => true,
                 'message' => 'Transfer Type Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
-                'status'  => false,
+                'status' => false,
                 'message' => $e->getMessage(),
             ];
         }
