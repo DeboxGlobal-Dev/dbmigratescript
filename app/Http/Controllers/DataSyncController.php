@@ -55,69 +55,172 @@ class DataSyncController extends Controller
         return trim($decoded);
     }
 
+    // public function syncSupplierMaster()
+    // {
+    //     try {
+    //         $mysqlUsers = DB::connection('mysql')->table('suppliersmaster')->get();
+
+
+    //         foreach ($mysqlUsers as $data) {
+
+    //             // Skip if supplier name empty
+    //             if (empty($data->name)) continue;
+
+    //             // 🔹 SupplierService JSON
+    //             $typeColumns = [
+    //                 'guideType',
+    //                 'activityType',
+    //                 'entranceType',
+    //                 'transferType',
+    //                 'mealType',
+    //                 'airlinesType',
+    //                 'trainType',
+    //                 'visaType',
+    //                 'otherType',
+    //                 'companyTypeId',
+    //                 'sightseeingType'
+    //             ];
+
+
+    //             $supplierService = [];
+    //             foreach ($typeColumns as $col)
+    //                 if (!empty($data->$col) && $data->$col > 0) $supplierService[] = (int)$data->$col;
+
+    //             // 🔹 Destination JSONs
+    //             $destinationJson = !empty($data->destinationId)
+    //                 ? json_encode(array_map('intval', explode(',', $data->destinationId)))
+    //                 : json_encode([]);
+    //             $defaultDestinationJson = !empty($data->SDefultCity)
+    //                 ? json_encode(array_map('intval', explode(',', $data->SDefultCity)))
+    //                 : json_encode([]);
+
+    //             // 🔹 Unique ID — if missing, make from MySQL ID
+    //             $uniqueId = !empty($data->supplierNumber)
+    //                 ? $data->supplierNumber
+    //                 : 'S' . str_pad($data->id, 6, '0', STR_PAD_LEFT);
+
+    //             // 🔹 Common record
+    //             $record = [
+    //                 'Name'                => $data->name,
+    //                 'AliasName'           => $data->aliasname ?? '',
+    //                 'PanInformation'      => $data->panInformation ?? '',
+    //                 'SupplierService'     => json_encode($supplierService),
+    //                 'Destination'         => $destinationJson,
+    //                 'PaymentTerm'         => $data->paymentTerm == 1 ? 'Cash' : ($data->paymentTerm == 2 ? 'Credit' : null),
+    //                 'ConfirmationType'    => $data->confirmationStatus == 3 ? 'Manual' : ($data->confirmationStatus == 6 ? 'Auto' : null),
+    //                 'LocalAgent' => (($data->isLocalAgent ?? 0) == 1) ? 'Yes' : 'No',
+    //                 'Agreement'           => $data->agreement == 1 ? 'Yes' : ($data->agreement == 0 ? 'No' : null),
+    //                 'Status'              => $data->status == 1 ? 'Yes' : ($data->status == 0 ? 'No' : null),
+    //                 'UniqueID'            => $uniqueId,
+    //                 'DefaultDestination'  => $defaultDestinationJson,
+    //                 'Gst'                 => $data->gstn ?? '',
+    //                 'Remarks'             => $data->details ?? '',
+    //                 'updated_at'          => now(),
+    //                 'RPK'          => $data->id,
+    //             ];
+
+    //             // 🔹 If exists (match by id), update — else insert new
+    //             $exists = DB::connection('pgsql')->table('others.supplier')
+    //                 ->where('id', $data->id)
+    //                 ->exists();
+
+    //             if ($exists) {
+    //                 DB::connection('pgsql')->table('others.supplier')
+    //                     ->where('id', $data->id)
+    //                     ->update($record);
+    //             } else {
+    //                 $record['id'] = $data->id;
+    //                 $record['created_at'] = now();
+    //                 DB::connection('pgsql')->table('others.supplier')->insert($record);
+    //             }
+    //         }
+
+    //         return ['status' => true, 'message' => 'Supplier Master synced successfully'];
+    //     } catch (\Exception $e) {
+    //         return ['status' => false, 'message' => $e->getMessage()];
+    //     }
+    // }
+
     public function syncSupplierMaster()
     {
         try {
+
+            $serviceMap = [
+                'guideType'        => 1,
+                'restaurantType'   => 2,
+                'activityType'     => 3,
+                'transferType'     => 4,
+                'sightseeingType'  => 5,
+                'trainType'        => 6,
+                'airlinesType'     => 9,
+                'companyTypeId'    => 12,
+                'invoiceType'      => 13,
+                'otherType'        => 17,
+                'mealType'         => 19,
+                'tourPackageType'  => 20,
+            ];
+
             $mysqlUsers = DB::connection('mysql')->table('suppliersmaster')->get();
 
             foreach ($mysqlUsers as $data) {
 
-                // Skip if supplier name empty
                 if (empty($data->name)) continue;
 
-                // 🔹 SupplierService JSON
-                $typeColumns = [
-                    'guideType',
-                    'activityType',
-                    'entranceType',
-                    'transferType',
-                    'mealType',
-                    'airlinesType',
-                    'trainType',
-                    'visaType',
-                    'otherType',
-                    'companyTypeId',
-                    'sightseeingType'
-                ];
+                /* ---------- Supplier Service ---------- */
                 $supplierService = [];
-                foreach ($typeColumns as $col)
-                    if (!empty($data->$col) && $data->$col > 0) $supplierService[] = (int)$data->$col;
 
-                // 🔹 Destination JSONs
+                foreach ($serviceMap as $column => $serviceId) {
+                    if (
+                        isset($data->$column) &&
+                        is_numeric($data->$column) &&
+                        (int)$data->$column >= 1
+                    ) {
+                        $supplierService[] = $serviceId;
+                    }
+                }
+
+                if (empty($supplierService)) {
+                    $supplierService[] = 12; // default HOTEL
+                }
+
+                $supplierService = array_values(array_unique($supplierService));
+
+                /* ---------- Destination ---------- */
                 $destinationJson = !empty($data->destinationId)
                     ? json_encode(array_map('intval', explode(',', $data->destinationId)))
                     : json_encode([]);
+
                 $defaultDestinationJson = !empty($data->SDefultCity)
                     ? json_encode(array_map('intval', explode(',', $data->SDefultCity)))
                     : json_encode([]);
 
-                // 🔹 Unique ID — if missing, make from MySQL ID
+                /* ---------- Unique ID ---------- */
                 $uniqueId = !empty($data->supplierNumber)
                     ? $data->supplierNumber
                     : 'S' . str_pad($data->id, 6, '0', STR_PAD_LEFT);
 
-                // 🔹 Common record
+                /* ---------- Record ---------- */
                 $record = [
-                    'Name'                => $data->name,
-                    'AliasName'           => $data->aliasname ?? '',
-                    'PanInformation'      => $data->panInformation ?? '',
-                    'SupplierService'     => json_encode($supplierService),
-                    'Destination'         => $destinationJson,
-                    'PaymentTerm'         => $data->paymentTerm == 1 ? 'Cash' : ($data->paymentTerm == 2 ? 'Credit' : null),
-                    'ConfirmationType'    => $data->confirmationStatus == 3 ? 'Manual' : ($data->confirmationStatus == 6 ? 'Auto' : null),
-                    'LocalAgent' => (($data->isLocalAgent ?? 0) == 1) ? 'Yes' : 'No',
-                    'Agreement'           => $data->agreement == 1 ? 'Yes' : ($data->agreement == 0 ? 'No' : null),
-                    'Status'              => $data->status == 1 ? 'Yes' : ($data->status == 0 ? 'No' : null),
-                    'UniqueID'            => $uniqueId,
-                    'DefaultDestination'  => $defaultDestinationJson,
-                    'Gst'                 => $data->gstn ?? '',
-                    'Remarks'             => $data->details ?? '',
-                    'updated_at'          => now(),
-                    'RPK'          => $data->id,
+                    'Name'               => $data->name,
+                    'AliasName'          => $data->aliasname ?? '',
+                    'PanInformation'     => $data->panInformation ?? '',
+                    'SupplierService'    => json_encode($supplierService),
+                    'Destination'        => $destinationJson,
+                    'PaymentTerm'        => $data->paymentTerm == 1 ? 'Cash' : ($data->paymentTerm == 2 ? 'Credit' : null),
+                    'ConfirmationType'   => $data->confirmationStatus == 3 ? 'Manual' : ($data->confirmationStatus == 6 ? 'Auto' : null),
+                    'LocalAgent'         => (($data->isLocalAgent ?? 0) == 1) ? 'Yes' : 'No',
+                    'Agreement'          => $data->agreement == 1 ? 'Yes' : 'No',
+                    'Status'             => $data->status == 1 ? 'Yes' : 'No',
+                    'UniqueID'           => $uniqueId,
+                    'DefaultDestination' => $defaultDestinationJson,
+                    'Gst'                => $data->gstn ?? '',
+                    'Remarks'            => $data->details ?? '',
+                    'RPK'                => $data->id,
+                    'updated_at'         => now(),
                 ];
 
-                // 🔹 If exists (match by id), update — else insert new
-                $exists = DB::connection('pgsql')->table('others.supplier')
+                $exists = DB::connection('pgsql')
+                    ->table('others.supplier')
                     ->where('id', $data->id)
                     ->exists();
 
@@ -128,7 +231,8 @@ class DataSyncController extends Controller
                 } else {
                     $record['id'] = $data->id;
                     $record['created_at'] = now();
-                    DB::connection('pgsql')->table('others.supplier')->insert($record);
+                    DB::connection('pgsql')->table('others.supplier')
+                        ->insert($record);
                 }
             }
 
@@ -137,6 +241,8 @@ class DataSyncController extends Controller
             return ['status' => false, 'message' => $e->getMessage()];
         }
     }
+
+
 
     public function transportMasterSync()
     {
@@ -2048,7 +2154,7 @@ class DataSyncController extends Controller
                 $hotelCityId = $destinations[$user->hotelCity]->id ?? null;
                 $countryId   = $countries[$user->hotelCountry]->id ?? null;
                 $uniqueId    = 'HOTL' . str_pad($user->id, 6, '0', STR_PAD_LEFT);
-                
+
                 /* -------------------------------------------------
                 | BUILD HOTEL ROOM TYPES (PUT HERE)
                 -------------------------------------------------*/
@@ -2082,7 +2188,7 @@ class DataSyncController extends Controller
                         )
                     );
                 }
-                
+
                 /* -------------------------------------------------
              | HOTEL BASIC DETAILS
              -------------------------------------------------*/
