@@ -1353,8 +1353,8 @@ class DataSyncController extends Controller
                         [
                             'id'           => $user->id,
                             'Name'           => $user->name,
-                            'StateId'          => 0,
-                            'CountryId'          => $user->countryId,
+                            'StateId'          => $user->stateId ?? 0,
+                            'CountryId'          => $user->countryId ?? 0,
                             'UniqueID'          => $uniqueId,
                             'Status'  => $user->status,
                             //'RPK'  => $user->id,
