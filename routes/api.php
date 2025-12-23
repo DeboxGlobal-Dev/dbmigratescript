@@ -39,3 +39,6 @@ Route::get('/agentcontactsync', [DataSyncController ::class, 'agentContactSync']
 Route::get('/syncdirectclient', [DataSyncController ::class, 'syncDirectClient']);  /////check
 Route::get('/transfertypesync', [DataSyncController ::class, 'transferTypeSync']);
 Route::get('/vehicletypemastersync', [DataSyncController ::class, 'vehicleTypeMasterSync']);
+Route::get('/suppliercontactsync', [DataSyncController ::class, 'supplierContactSync']);
+Route::get('/markettypesync', [DataSyncController ::class, 'marketTypeSync']);
+Route::get('/nationalitysync', [DataSyncController ::class, 'nationalitySync']);
