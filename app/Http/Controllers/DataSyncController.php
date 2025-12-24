@@ -2302,6 +2302,18 @@ class DataSyncController extends Controller
                         $paxTypeName = 'Both';
                     }
 
+                    $seasonName = '';
+
+                    if (!empty($seasonTypes[$r->seasonType]?->seasonNameId)) {
+                        $seasonName = match ((int) $seasonTypes[$r->seasonType]->seasonNameId) {
+                            1 => 'Summer',
+                            2 => 'Winter',
+                            3 => 'All',
+                            default => ''
+                        };
+                    }
+
+
         
                     $rateDetailsList[] = [
                         "UniqueID" => $uuid,
@@ -2327,7 +2339,7 @@ class DataSyncController extends Controller
                         "TarrifeTypeId" => (int)$r->tarifType,
                         "TarrifeTypeName" => $terrifTypes[$r->tarifType]->name ?? "",
                         "SeasonTypeID" => (int)$r->seasonType,
-                        "SeasonTypeName"=> $seasonTypes[$r->seasonType]->name ?? "",
+                        "SeasonTypeName"=> $seasonName ?? "",
                         "SeasonYear" => $r->seasonYear,
 
                         "RoomTypeId" => (int)$r->roomType,
