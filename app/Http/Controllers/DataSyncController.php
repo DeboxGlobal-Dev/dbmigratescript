@@ -2314,7 +2314,7 @@ class DataSyncController extends Controller
                     }
 
 
-        
+
                     $rateDetailsList[] = [
                         "UniqueID" => $uuid,
 
@@ -2339,7 +2339,7 @@ class DataSyncController extends Controller
                         "TarrifeTypeId" => (int)$r->tarifType,
                         "TarrifeTypeName" => $terrifTypes[$r->tarifType]->name ?? "",
                         "SeasonTypeID" => (int)$r->seasonType,
-                        "SeasonTypeName"=> $seasonName ?? "",
+                        "SeasonTypeName" => $seasonName ?? "",
                         "SeasonYear" => $r->seasonYear,
 
                         "RoomTypeId" => (int)$r->roomType,
@@ -2601,6 +2601,17 @@ class DataSyncController extends Controller
 
             foreach ($mysqlUsers as $user) {
 
+                // ✅ Direct season name condition
+                if (!empty($user->name)) {
+                    $seasonName = $user->name;
+                } else {
+                    $seasonName = match ((int) ($user->seasonNameId ?? 0)) {
+                        1 => 'Summer',
+                        2 => 'Winter',
+                        3 => 'All',
+                        default => ''
+                    };
+                }
 
                 // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
@@ -2609,7 +2620,7 @@ class DataSyncController extends Controller
                         ['id' => $user->id],  // Match by primary key
                         [
                             'id'           => $user->id,
-                            'Name'           => $user->name ?? "",
+                            'Name'           => $seasonName,
                             'SeasonName'           => $user->name ?? "",
                             'FromDate'           => $user->fromDate,
                             'ToDate'           => $user->toDate,
@@ -4601,6 +4612,66 @@ class DataSyncController extends Controller
             return [
                 'status'  => true,
                 'message' => 'Nationality Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status'  => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    private function pgInt($value, $default = 0)
+    {
+        return is_numeric($value) ? (int) $value : $default;
+    }
+
+    private function pgText($value, $default = '')
+    {
+        return ($value !== null && $value !== '') ? $value : $default;
+    }
+
+    public function itiInfoSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('iti_subjectmaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('others.itinerary_requirement')
+                    ->updateOrInsert(
+                        ['id' => $user->id],
+                        [
+                            'FromDestination' => $this->pgInt($user->fromDestinationId),
+                            'ToDestination'   => $this->pgInt($user->toDestinationId),
+
+                            'TransferMode'    => $this->pgText($user->transferMode),
+
+                            'Title'           => $this->pgText($user->otherTitle),
+
+                            'Description'     => $this->pgText($user->description),
+
+                            'DrivingDistance' => $this->pgInt($user->drivingDistance),
+
+                            'Status'          => $this->pgInt($user->status, 1),
+
+                            'AddedBy'         => 1,
+                            'UpdatedBy'       => 1,
+                            'created_at'      => now(),
+                            'updated_at'      => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status'  => true,
+                'message' => 'Itinarary Info Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
