@@ -55,50 +55,152 @@ class DataSyncController extends Controller
         return trim($decoded);
     }
 
+    // public function syncSupplierMaster()
+    // {
+    //     try {
+    //         $mysqlUsers = DB::connection('mysql')->table('suppliersmaster')->get();
+
+
+    //         foreach ($mysqlUsers as $data) {
+
+    //             // Skip if supplier name empty
+    //             if (empty($data->name)) continue;
+
+    //             // 🔹 SupplierService JSON
+    //             $typeColumns = [
+    //                 'guideType',
+    //                 'activityType',
+    //                 'entranceType',
+    //                 'transferType',
+    //                 'mealType',
+    //                 'airlinesType',
+    //                 'trainType',
+    //                 'visaType',
+    //                 'otherType',
+    //                 'companyTypeId',
+    //                 'sightseeingType'
+    //             ];
+
+
+    //             $supplierService = [];
+    //             foreach ($typeColumns as $col)
+    //                 if (!empty($data->$col) && $data->$col > 0) $supplierService[] = (int)$data->$col;
+
+    //             // 🔹 Destination JSONs
+    //             $destinationJson = !empty($data->destinationId)
+    //                 ? json_encode(array_map('intval', explode(',', $data->destinationId)))
+    //                 : json_encode([]);
+    //             $defaultDestinationJson = !empty($data->SDefultCity)
+    //                 ? json_encode(array_map('intval', explode(',', $data->SDefultCity)))
+    //                 : json_encode([]);
+
+    //             // 🔹 Unique ID — if missing, make from MySQL ID
+    //             $uniqueId = !empty($data->supplierNumber)
+    //                 ? $data->supplierNumber
+    //                 : 'S' . str_pad($data->id, 6, '0', STR_PAD_LEFT);
+
+    //             // 🔹 Common record
+    //             $record = [
+    //                 'Name'                => $data->name,
+    //                 'AliasName'           => $data->aliasname ?? '',
+    //                 'PanInformation'      => $data->panInformation ?? '',
+    //                 'SupplierService'     => json_encode($supplierService),
+    //                 'Destination'         => $destinationJson,
+    //                 'PaymentTerm'         => $data->paymentTerm == 1 ? 'Cash' : ($data->paymentTerm == 2 ? 'Credit' : null),
+    //                 'ConfirmationType'    => $data->confirmationStatus == 3 ? 'Manual' : ($data->confirmationStatus == 6 ? 'Auto' : null),
+    //                 'LocalAgent' => (($data->isLocalAgent ?? 0) == 1) ? 'Yes' : 'No',
+    //                 'Agreement'           => $data->agreement == 1 ? 'Yes' : ($data->agreement == 0 ? 'No' : null),
+    //                 'Status'              => $data->status == 1 ? 'Yes' : ($data->status == 0 ? 'No' : null),
+    //                 'UniqueID'            => $uniqueId,
+    //                 'DefaultDestination'  => $defaultDestinationJson,
+    //                 'Gst'                 => $data->gstn ?? '',
+    //                 'Remarks'             => $data->details ?? '',
+    //                 'updated_at'          => now(),
+    //                 'RPK'          => $data->id,
+    //             ];
+
+    //             // 🔹 If exists (match by id), update — else insert new
+    //             $exists = DB::connection('pgsql')->table('others.supplier')
+    //                 ->where('id', $data->id)
+    //                 ->exists();
+
+    //             if ($exists) {
+    //                 DB::connection('pgsql')->table('others.supplier')
+    //                     ->where('id', $data->id)
+    //                     ->update($record);
+    //             } else {
+    //                 $record['id'] = $data->id;
+    //                 $record['created_at'] = now();
+    //                 DB::connection('pgsql')->table('others.supplier')->insert($record);
+    //             }
+    //         }
+
+    //         return ['status' => true, 'message' => 'Supplier Master synced successfully'];
+    //     } catch (\Exception $e) {
+    //         return ['status' => false, 'message' => $e->getMessage()];
+    //     }
+    // }
+
     public function syncSupplierMaster()
     {
         try {
+
+            $serviceMap = [
+                'guideType' => 1,
+                'restaurantType' => 2,
+                'activityType' => 3,
+                'transferType' => 4,
+                'sightseeingType' => 5,
+                'trainType' => 6,
+                'airlinesType' => 9,
+                'companyTypeId' => 12,
+                'invoiceType' => 13,
+                'otherType' => 17,
+                'mealType' => 19,
+                'tourPackageType' => 20,
+            ];
+
             $mysqlUsers = DB::connection('mysql')->table('suppliersmaster')->get();
 
             foreach ($mysqlUsers as $data) {
 
-                // Skip if supplier name empty
                 if (empty($data->name))
                     continue;
 
-                // 🔹 SupplierService JSON
-                $typeColumns = [
-                    'guideType',
-                    'activityType',
-                    'entranceType',
-                    'transferType',
-                    'mealType',
-                    'airlinesType',
-                    'trainType',
-                    'visaType',
-                    'otherType',
-                    'companyTypeId',
-                    'sightseeingType'
-                ];
+                /* ---------- Supplier Service ---------- */
                 $supplierService = [];
-                foreach ($typeColumns as $col)
-                    if (!empty($data->$col) && $data->$col > 0)
-                        $supplierService[] = (int) $data->$col;
 
-                // 🔹 Destination JSONs
+                foreach ($serviceMap as $column => $serviceId) {
+                    if (
+                        isset($data->$column) &&
+                        is_numeric($data->$column) &&
+                        (int) $data->$column >= 1
+                    ) {
+                        $supplierService[] = $serviceId;
+                    }
+                }
+
+                if (empty($supplierService)) {
+                    $supplierService[] = 12; // default HOTEL
+                }
+
+                $supplierService = array_values(array_unique($supplierService));
+
+                /* ---------- Destination ---------- */
                 $destinationJson = !empty($data->destinationId)
                     ? json_encode(array_map('intval', explode(',', $data->destinationId)))
                     : json_encode([]);
+
                 $defaultDestinationJson = !empty($data->SDefultCity)
                     ? json_encode(array_map('intval', explode(',', $data->SDefultCity)))
                     : json_encode([]);
 
-                // 🔹 Unique ID — if missing, make from MySQL ID
+                /* ---------- Unique ID ---------- */
                 $uniqueId = !empty($data->supplierNumber)
                     ? $data->supplierNumber
                     : 'S' . str_pad($data->id, 6, '0', STR_PAD_LEFT);
 
-                // 🔹 Common record
+                /* ---------- Record ---------- */
                 $record = [
                     'Name' => $data->name,
                     'AliasName' => $data->aliasname ?? '',
@@ -108,18 +210,18 @@ class DataSyncController extends Controller
                     'PaymentTerm' => $data->paymentTerm == 1 ? 'Cash' : ($data->paymentTerm == 2 ? 'Credit' : null),
                     'ConfirmationType' => $data->confirmationStatus == 3 ? 'Manual' : ($data->confirmationStatus == 6 ? 'Auto' : null),
                     'LocalAgent' => (($data->isLocalAgent ?? 0) == 1) ? 'Yes' : 'No',
-                    'Agreement' => $data->agreement == 1 ? 'Yes' : ($data->agreement == 0 ? 'No' : null),
-                    'Status' => $data->status == 1 ? 'Yes' : ($data->status == 0 ? 'No' : null),
+                    'Agreement' => $data->agreement == 1 ? 'Yes' : 'No',
+                    'Status' => $data->status == 1 ? 'Yes' : 'No',
                     'UniqueID' => $uniqueId,
                     'DefaultDestination' => $defaultDestinationJson,
                     'Gst' => $data->gstn ?? '',
                     'Remarks' => $data->details ?? '',
-                    'updated_at' => now(),
                     'RPK' => $data->id,
+                    'updated_at' => now(),
                 ];
 
-                // 🔹 If exists (match by id), update — else insert new
-                $exists = DB::connection('pgsql')->table('others.supplier')
+                $exists = DB::connection('pgsql')
+                    ->table('others.supplier')
                     ->where('id', $data->id)
                     ->exists();
 
@@ -130,7 +232,8 @@ class DataSyncController extends Controller
                 } else {
                     $record['id'] = $data->id;
                     $record['created_at'] = now();
-                    DB::connection('pgsql')->table('others.supplier')->insert($record);
+                    DB::connection('pgsql')->table('others.supplier')
+                        ->insert($record);
                 }
             }
 
@@ -139,6 +242,8 @@ class DataSyncController extends Controller
             return ['status' => false, 'message' => $e->getMessage()];
         }
     }
+
+
 
     public function transportMasterSync()
     {
@@ -1333,34 +1438,38 @@ class DataSyncController extends Controller
     public function companyBankSync()
     {
         try {
+            // ✅ Read all data from MySQL
             $mysqlUsers = DB::connection('mysql')
                 ->table('bankmaster')
                 ->get();
 
             foreach ($mysqlUsers as $user) {
 
+                $uniqueId = !empty($user->id) ? 'S' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
+
+                // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
                     ->table('others.bank_master')
                     ->updateOrInsert(
-                        ['rpk' => $user->id], // 🔥 Use lowercase
+                        ['RPK' => $user->id],  // Match by primary key
                         [
-                            'rpk' => $user->id,
-                            'bankname' => $user->bankName,
-                            'accountnumber' => $user->accountNumber,
-                            'branchaddress' => $user->branchAddress,
-                            'upiid' => null,
-                            'accounttype' => $user->accountType ?? '',
-                            'beneficiaryname' => $user->beneficiaryName ?? '',
-                            'branchifsc' => $user->branchIFSC ?? "",
-                            'branchswiftcode' => $user->branchSwiftCode ?? "",
+                            'BankName' => $user->bankName,
+                            'AccountNumber' => $user->accountNumber,
+                            'BranchAddress' => $user->branchAddress,
+                            'UpiId' => null,
+                            'AccountType' => $user->accountType ?? '',
+                            'BeneficiaryName' => $user->beneficiaryName ?? '',
+                            'BranchIfsc' => $user->branchIFSC ?? "",
+                            'BranchSwiftCode' => $user->branchSwiftCode ?? "",
                             'currencyid' => $user->currencyId ?? 0,
                             'purpose' => $user->purposeRemittance ?? "",
-                            'businesstype' => "Domestic",
-                            'showhide' => 1,
-                            'setdefault' => 0,
-                            'status' => $user->status,
-                            'addedby' => 1,
-                            'updatedby' => 1,
+                            'BusinessType' => "Domestic",
+                            'ShowHide' => 1,
+                            'SetDefault' => 0,
+                            'Status' => $user->status,
+                            'RPK' => $user->id,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]
@@ -1371,7 +1480,6 @@ class DataSyncController extends Controller
                 'status' => true,
                 'message' => 'Bank Master Data synced successfully'
             ];
-
         } catch (\Exception $e) {
             return [
                 'status' => false,
@@ -2051,6 +2159,40 @@ class DataSyncController extends Controller
                 $uniqueId = 'HOTL' . str_pad($user->id, 6, '0', STR_PAD_LEFT);
 
                 /* -------------------------------------------------
+                | BUILD HOTEL ROOM TYPES (PUT HERE)
+                -------------------------------------------------*/
+                $hotelRoomTypes = [];
+
+                if (!empty($user->roomType)) {
+
+                    $roomTypeIds = array_map('trim', explode(',', $user->roomType));
+                    $roomCounts = !empty($user->noOfRoom)
+                        ? array_map('trim', explode(',', $user->noOfRoom))
+                        : [];
+
+                    foreach ($roomTypeIds as $index => $roomTypeId) {
+                        $hotelRoomTypes[] = [
+                            "RoomTypeId" => (string) $roomTypeId,
+                            "RoomTypeName" => $roomTypes[$roomTypeId]->name ?? "",
+                            "NoOfRoom" => $roomCounts[$index] ?? "0"
+                        ];
+                    }
+                }
+
+                /* -------------------------------------------------
+                | BUILD HOTEL AMENITIES (PUT HERE)
+                -------------------------------------------------*/
+                $hotelAmenities = [];
+
+                if (!empty($user->amenities)) {
+                    $hotelAmenities = array_values(
+                        array_filter(
+                            array_map('trim', explode(',', $user->amenities))
+                        )
+                    );
+                }
+
+                /* -------------------------------------------------
              | HOTEL BASIC DETAILS
              -------------------------------------------------*/
                 $hotelBasicDetailsJson = json_encode([
@@ -2066,10 +2208,8 @@ class DataSyncController extends Controller
                     "HotelAddress" => $user->hotelAddress ?? "",
                     "InternalNote" => $user->internalNote ?? "",
                     "HotelCategory" => (int) ($user->hotelCategoryId ?? 0),
-                    "HotelRoomType" => !empty($user->roomType)
-                        ? array_values(array_filter(array_map('trim', explode(',', $user->roomType))))
-                        : [],
-                    "HotelAmenities" => $user->amenities ?? ""
+                    "HotelRoomType" => $hotelRoomTypes,
+                    "HotelAmenities" => $hotelAmenities
                 ], JSON_UNESCAPED_UNICODE);
 
                 /* -------------------------------------------------
@@ -2112,9 +2252,9 @@ class DataSyncController extends Controller
                         "SupplierId" => $r->supplierId,
                         "SupplierName" => $suppliers[$r->supplierId]->name ?? "",
                         "HotelTypeId" => $user->hotelTypeId,
-                        "HotelTypeName" => $hotelTypes[$user->hotelTypeId]->hotelCategory ?? "",
+                        "HotelTypeName" => $hotelTypes[$user->hotelTypeId]->name ?? "",
                         "HotelCategoryId" => $user->hotelCategoryId,
-                        "HotelCategoryName" => $hotelCats[$user->hotelCategoryId]->name ?? "",
+                        "HotelCategoryName" => $hotelCats[$user->hotelCategoryId]->uploadKeyWord ?? "",
                         "ValidFrom" => $r->fromDate,
                         "ValidTo" => $r->toDate,
                         "RoomTypeId" => $r->roomType,
@@ -2195,6 +2335,12 @@ class DataSyncController extends Controller
                             'HotelContactDetails' => $hotelContactJson,
                             'RateJson' => $rateJson,
                             'UniqueID' => $uniqueId,
+                            'Destination' => $hotelCityId,
+                            'default' => 'No',
+                            'SupplierId' => $user->supplierId,
+                            'HotelTypeId' => $user->hotelTypeId,
+                            'HotelAddress' => $user->hotelAddress,
+                            'HotelCategory' => $user->hotelCategoryId,
                             'created_at' => now(),
                             'updated_at' => now()
                         ]
@@ -2206,7 +2352,6 @@ class DataSyncController extends Controller
             return ['status' => false, 'message' => $e->getMessage()];
         }
     }
-
 
 
     public function roomTypeSync()
@@ -2252,6 +2397,8 @@ class DataSyncController extends Controller
 
     public function currencyMasterSync()
     {
+        ini_set('memory_limit', '1024M');
+
         try {
             // ✅ Read all data from MySQL
             $mysqlUsers = DB::connection('mysql')
@@ -2429,26 +2576,28 @@ class DataSyncController extends Controller
     public function gstMasterSync()
     {
         try {
+            // ✅ Read all data from MySQL
             $mysqlUsers = DB::connection('mysql')
                 ->table('gstmaster')
                 ->get();
 
             foreach ($mysqlUsers as $user) {
-
+                // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
                     ->table('others.tax_master')
                     ->updateOrInsert(
-                        ['id' => $user->id],
+                        ['id' => $user->id],  // Match by primary key
                         [
                             'id' => $user->id,
-                            'ServiceType' => $user->serviceType ?? '',
-                            'TaxSlabName' => $user->gstSlabName ?? '',
-                            'TaxValue' => $user->gstValue ?? 0,
-                            'SetDefault' => $user->setDefault ?? 0,
-                            'PriceRangeFrom' => $user->priceRangeFrom ?? null,
-                            'PriceRangeTo' => $user->priceRangeTo ?? null,  // 🔥 Safe
-                            'Currency' => $user->currencyId ?? null,
-                            'Status' => $user->status ?? 1,
+                            'ServiceType' => $user->serviceType,
+                            'TaxSlabName' => $user->gstSlabName,
+                            'TaxValue' => $user->gstValue,
+                            'SetDefault' => $user->setDefault,
+                            'PriceRangeFrom' => $user->priceRangeFrom,
+                            'PriceRangeTo' => $user->priceRangeTo,
+                            'Currency' => $user->currencyId,
+                            'Status' => $user->status,
+                            //'RPK'  => $user->id,
                             'AddedBy' => 1,
                             'UpdatedBy' => 1,
                             'created_at' => now(),
@@ -2461,7 +2610,6 @@ class DataSyncController extends Controller
                 'status' => true,
                 'message' => 'GST Tax Master Data synced successfully'
             ];
-
         } catch (\Exception $e) {
             return [
                 'status' => false,
@@ -2469,7 +2617,6 @@ class DataSyncController extends Controller
             ];
         }
     }
-
 
     public function companyAddressMasterSync()
     {
@@ -3112,8 +3259,8 @@ class DataSyncController extends Controller
                 foreach ($hotelContacts as $c) {
                     $contactDetailsArray[] = [
                         "Division" => $c->division,
-                        // "NameTitle" => $c->nameTitle,
-                        // "FirstName" => $c->firstName,
+                        "NameTitle" => $c->nameTitle,
+                        "FirstName" => $c->firstName,
                         "LastName" => $c->lastName,
                         "Designation" => $c->designation,
                         "CountryCode" => $c->countryCode,
@@ -4169,6 +4316,48 @@ class DataSyncController extends Controller
             return [
                 'status' => true,
                 'message' => 'Transfer Type Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function vehicleTypeMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('vehicletypemaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('transport.vehicle_type_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'PaxCapacity' => $user->capacity,
+                            'Status' => $user->status,
+                            //'RPK'  => $user->id,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Vehicle Type Master Data synced successfully'
             ];
         } catch (\Exception $e) {
             return [
