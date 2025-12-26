@@ -2547,7 +2547,94 @@ class DataSyncController extends Controller
                         };
                     }
 
+                    $roomBedTypeArray = [];
+                    $roomTotalCost = 0;
 
+                    $roomMap = [
+                        'SGL'         => (float)$r->singleoccupancy,
+                        'DBL'         => (float)$r->doubleoccupancy,
+                        'TPL'         => (float)$r->tripleoccupancy,
+                        'ExtraBed(A)' => (float)$r->extraBed,
+                        'ExtraBed(C)' => (float)$r->childwithextrabed,
+                    ];
+
+                    foreach ($roomMap as $roomName => $roomCost) {
+
+                        $roomCost = (float)$roomCost;
+
+                        $gstPercent = 0;
+
+                        if ($roomCost > 0) {
+                            $gstSlab = DB::connection('mysql')
+                                ->table('gstmaster')
+                                ->where('serviceType', 'Hotel')
+                                ->where('status', 1)
+                                ->where('deletestatus', 0)
+                                ->where('priceRangeFrom', '<=', (int)$roomCost)
+                                ->where('priceRangeTo', '>=', (int)$roomCost)
+                                ->first();
+
+                            if ($gstSlab) {
+                                $gstPercent = (float)$gstSlab->gstValue;
+                            }
+                        }
+
+                        $gstAmount = round(($roomCost * $gstPercent) / 100, 2);
+                        $totalCost = round($roomCost + $gstAmount, 2);
+
+                        $roomTotalCost += $totalCost;
+
+                        $roomBedTypeArray[] = [
+                            "RoomBedTypeName"   => $roomName,
+                            "RoomCost"          => number_format($roomCost, 2, '.', ''),
+                            "RoomTaxValue"      => $gstPercent . '%',
+                            "RoomCostRateValue" => number_format($gstAmount, 2, '.', ''),
+                            "RoomTotalCost"     => number_format($totalCost, 2, '.', ''),
+                        ];
+                    } 
+
+                    $mealTypeArray = [];
+                    $mealTotalCost = 0;
+
+                    $mealMap = [
+                        'Breakfast' => (float)$r->breakfast,
+                        'Lunch'     => (float)$r->lunch,
+                        'Dinner'    => (float)$r->dinner,
+                    ];
+
+                    foreach ($mealMap as $mealName => $mealCost) {
+
+                        $mealCost = (float)$mealCost;
+                        $gstPercent = 0;
+
+                        if ($mealCost > 0) {
+                            $gstSlab = DB::connection('mysql')
+                                ->table('gstmaster')
+                                ->where('serviceType', 'Restaurant')
+                                ->where('status', 1)
+                                ->where('deletestatus', 0)
+                                ->where('priceRangeFrom', '<=', (int)$mealCost)
+                                ->where('priceRangeTo', '>=', (int)$mealCost)
+                                ->first();
+
+                            if ($gstSlab) {
+                                $gstPercent = (float)$gstSlab->gstValue;
+                            }
+                        }
+
+                        $gstAmount = round(($mealCost * $gstPercent) / 100, 2);
+                        $totalCost = round($mealCost + $gstAmount, 2);
+
+                        $mealTotalCost += $totalCost;
+
+                        $mealTypeArray[] = [
+                            "MealTypeName"      => $mealName,
+                            "MealCost"          => number_format($mealCost, 2, '.', ''),
+                            "MealTaxValue"      => $gstPercent . '%',
+                            "MealCostRateValue" => number_format($gstAmount, 2, '.', ''),
+                            "MealTotalCost"     => number_format($totalCost, 2, '.', ''),
+                        ];
+                    }
 
                     $rateDetailsList[] = [
                         "UniqueID" => $uuid,
@@ -2585,19 +2672,9 @@ class DataSyncController extends Controller
                         "CurrencyId" => (int)$r->currencyId,
                         "CurrencyName" => "INR",
 
-                        "RoomBedType" => [
-                            ["RoomBedTypeId" => 3, "RoomBedTypeName" => "SGL", "RoomCost" => (float)$r->singleoccupancy],
-                            ["RoomBedTypeId" => 4, "RoomBedTypeName" => "DBL", "RoomCost" => (float)$r->doubleoccupancy],
-                            ["RoomBedTypeId" => 6, "RoomBedTypeName" => "TPL", "RoomCost" => (float)$r->tripleoccupancy],
-                            ["RoomBedTypeId" => 7, "RoomBedTypeName" => "ExtraBed(A)", "RoomCost" => (float)$r->extraBed],
-                            ["RoomBedTypeId" => 8, "RoomBedTypeName" => "ExtraBed(C)", "RoomCost" => (float)$r->childwithextrabed],
-                        ],
+                        "RoomBedType" => $roomBedTypeArray,
 
-                        "MealType" => [
-                            ["MealTypeId" => 1, "MealTypeName" => "Breakfast", "MealCost" => (float)$r->breakfast],
-                            ["MealTypeId" => 3, "MealTypeName" => "Lunch", "MealCost" => (float)$r->lunch],
-                            ["MealTypeId" => 2, "MealTypeName" => "Dinner", "MealCost" => (float)$r->dinner],
-                        ],
+                        "MealType" => $mealTypeArray,
 
                         "TAC" => $r->roomTAC,
                         "MarkupType" => $r->markupType,
