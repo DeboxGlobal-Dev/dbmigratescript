@@ -4786,7 +4786,7 @@ class DataSyncController extends Controller
                         ->where('id', $user->corporateId)
                         ->first();
 
-                    $contactPersonName = $supplier->supplierName ?? '';
+                    $contactPersonName = $supplier->name ?? '';
                 }
 
                 // ✅ Insert / Update data to PGSQL
