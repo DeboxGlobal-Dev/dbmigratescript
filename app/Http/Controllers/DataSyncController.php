@@ -4259,7 +4259,7 @@ class DataSyncController extends Controller
                 DB::connection('pgsql')
                     ->table('others.contact_person_master')
                     ->updateOrInsert(
-                        ['id' => $user->id],  // Match by primary key
+                        //['id' => $user->id],  // Match by primary key
                         [
                             'id'           => $user->id,
                             'ParentId'           => $user->corporateId,
@@ -4793,7 +4793,7 @@ class DataSyncController extends Controller
                 DB::connection('pgsql')
                     ->table('others.contact_person_master')
                     ->updateOrInsert(
-                        ['id' => $user->id],
+                        //['id' => $user->id],
                         [
                             'ParentId'      => $user->corporateId,
                             'OfficeName'    => 'Head Office',
