@@ -173,6 +173,12 @@ class DataSyncController extends Controller
 
             $mysqlUsers = DB::connection('mysql')->table('suppliersmaster')->get();
 
+            $allDestinationIds = DB::connection('mysql')
+                ->table('destinationmaster')
+                ->pluck('id')
+                ->map(fn ($id) => (int)$id)
+                ->toArray();
+            
             foreach ($mysqlUsers as $data) {
 
                 if (empty($data->name)) continue;
@@ -197,9 +203,22 @@ class DataSyncController extends Controller
                 $supplierService = array_values(array_unique($supplierService));
 
                 /* ---------- Destination ---------- */
-                $destinationJson = !empty($data->destinationId)
-                    ? json_encode(array_map('intval', explode(',', $data->destinationId)))
-                    : json_encode([]);
+                if ((int) ($data->isDestAll ?? 0) === 1) {
+
+                    // isDestAll = 1 → ALL destinations
+                    $destinationJson = json_encode($allDestinationIds);
+
+                } elseif (!empty($data->destinationId)) {
+
+                    // Specific destinations
+                    $destinationJson = json_encode(
+                        array_map('intval', explode(',', $data->destinationId))
+                    );
+
+                } else {
+
+                    $destinationJson = json_encode([]);
+                }
 
                 $defaultDestinationJson = !empty($data->SDefultCity)
                     ? json_encode(array_map('intval', explode(',', $data->SDefultCity)))
