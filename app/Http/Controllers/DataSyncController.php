@@ -234,7 +234,7 @@ class DataSyncController extends Controller
                     'Name'               => $data->name,
                     'AliasName'          => $data->aliasname ?? '',
                     'PanInformation'     => $data->panInformation ?? '',
-                    'SupplierService'    => json_encode($supplierService),
+                    'SupplierService' => json_encode(array_map('strval', $supplierService)),
                     'Destination'        => $destinationJson,
                     'PaymentTerm'        => $data->paymentTerm == 1 ? 'Cash' : ($data->paymentTerm == 2 ? 'Credit' : null),
                     'ConfirmationType'   => $data->confirmationStatus == 3 ? 'Manual' : ($data->confirmationStatus == 6 ? 'Auto' : null),
@@ -4598,6 +4598,50 @@ class DataSyncController extends Controller
                     default                     => 'Male', // ✅ REQUIRED because Gender is NOT NULL
                 };
 
+                // -------------------------------------------------
+                // 📞 FETCH PHONE DETAILS (INLINE)
+                // -------------------------------------------------
+                $phones = DB::connection('mysql')
+                    ->table('phonemaster')
+                    ->where('sectionType', 'contacts')
+                    ->where('masterId', $user->id)
+                    ->get();
+
+                // -------------------------------------------------
+                // 📧 FETCH EMAIL DETAILS (INLINE)
+                // -------------------------------------------------
+                $emails = DB::connection('mysql')
+                    ->table('emailmaster')
+                    ->where('sectionType', 'contacts')
+                    ->where('masterId', $user->id)
+                    ->get();
+
+                // -------------------------------------------------
+                // 🧩 BUILD CONTACTINFO JSON
+                // -------------------------------------------------
+                $contactInfo = [];
+                $max = max($phones->count(), $emails->count());
+
+                for ($i = 0; $i < $max; $i++) {
+
+                    $phone = $phones[$i] ?? null;
+                    $email = $emails[$i] ?? null;
+
+                    $contactInfo[] = [
+                        'ContactId'    => 1,
+                        'Contact_Type' => 'Work',
+                        'CountryCode'  => $phone->countryCode ?? '91',
+                        'Mobile'       => $phone->phoneNo ?? null,
+                        'EmailType'    => 'Work',
+                        'Email'        => $email->email ?? null,
+                    ];
+                }
+
+                // -------------------------------------------------
+                // ⛔ EMPTY ARRAY SAFETY
+                // -------------------------------------------------
+                $contactInfo = empty($contactInfo) ? null : json_encode($contactInfo);
+
                 DB::connection('pgsql')
                     ->table('others.direct_clients')
                     ->updateOrInsert(
@@ -4611,14 +4655,14 @@ class DataSyncController extends Controller
 
                             // 🔢 Integer-safe fields
                             'MarketType'        => is_numeric($user->marketType ?? null) ? (int)$user->marketType : null,
-                            'Nationality'       => is_numeric($user->nationalityId ?? null) ? (int)$user->nationalityId : null,
+                            'Nationality'       => is_numeric($user->nationality ?? null) ? (int)$user->nationality : null,
                             'Country'           => is_numeric($user->countryId ?? null) ? (int)$user->countryId : null,
                             'State'             => is_numeric($user->stateId ?? null) ? (int)$user->stateId : null,
                             'City'              => is_numeric($user->cityId ?? null) ? (int)$user->cityId : null,
 
                             // ✅ Fixed Gender
                             'Gender'            => $gender,
-
+                            'Contactinfo' => $contactInfo,
                             // ✅ Dates
                             'DOB'               => $this->fixDate($user->birthDate ?? null),
                             'AnniversaryDate'   => $this->fixDate($user->anniversaryDate ?? null),

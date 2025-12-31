@@ -8,11 +8,11 @@ Route::get('/test', function () {
 });
 
 Route::get('/check-db', [DataSyncController ::class, 'checkConnections']);
+
 Route::get('/countrysync', [DataSyncController ::class, 'countrySync']);
 Route::get('/statesync', [DataSyncController ::class, 'stateSync']);
 Route::get('/citysync', [DataSyncController ::class, 'citySync']);
 Route::get('/destinationsync', [DataSyncController ::class, 'destinationSync']);
-Route::get('/syncagent', [DataSyncController ::class, 'syncAgent']);  /////check
 Route::get('/companybanksync', [DataSyncController ::class, 'companyBankSync']);
 Route::get('/currencymastersync', [DataSyncController ::class, 'currencyMasterSync']);
 Route::get('/businesstypemastersync', [DataSyncController ::class, 'businessTypeMasterSync']);
@@ -20,13 +20,14 @@ Route::get('/seasonmastersync', [DataSyncController ::class, 'seasonMasterSync']
 Route::get('/hsnsacmasterSync', [DataSyncController ::class, 'hsnSacMasterSync']);
 Route::get('/gstmastersync', [DataSyncController ::class, 'gstMasterSync']);
 Route::get('/companyaddresssync', [DataSyncController ::class, 'companyAddressMasterSync']);
+Route::get('/markettypesync', [DataSyncController ::class, 'marketTypeSync']);
+Route::get('/nationalitysync', [DataSyncController ::class, 'nationalitySync']);
+Route::get('/syncagent', [DataSyncController ::class, 'syncAgent']);  /////check
 Route::get('/syncdirectclient', [DataSyncController ::class, 'syncDirectClient']);  /////check
 Route::get('/agentcontactsync', [DataSyncController ::class, 'agentContactSync']);
 Route::get('/suppliercontactsync', [DataSyncController ::class, 'supplierContactSync']);
-Route::get('/markettypesync', [DataSyncController ::class, 'marketTypeSync']);
-Route::get('/nationalitysync', [DataSyncController ::class, 'nationalitySync']);
-Route::get('/itiinfosync', [DataSyncController ::class, 'itiInfoSync']);
 Route::get('/syncsuppliermaster', [DataSyncController ::class, 'syncSupplierMaster']);
+Route::get('/itiinfosync', [DataSyncController ::class, 'itiInfoSync']);
 
 Route::get('/querymastersync', [DataSyncController ::class, 'queryMasterSync']);
 Route::get('/invoicemastersync', [DataSyncController ::class, 'invoiceMasterSync']);
