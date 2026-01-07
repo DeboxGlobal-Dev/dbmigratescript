@@ -288,10 +288,12 @@ class DataSyncController extends Controller
                     ? json_encode(array_map('intval', explode(',', $data->destinationId)))
                     : json_encode([]);
 
+                $uniqueId    = 'TPT' . str_pad($data->id, 6, '0', STR_PAD_LEFT);
 
                 // 🔹 Common record
                 $record = [
                     'Name'                => $data->transferName,
+                    'UniqueID'                => $uniqueId,
                     'DestinationId'         => $destinationJson,
                     'TransferType'         => $data->transferType,
                     'Status'    => $data->status,
@@ -316,7 +318,7 @@ class DataSyncController extends Controller
                 }
             }
 
-            return ['status' => true, 'message' => 'Tansfer Master synced successfully'];
+            return ['status' => true, 'message' => 'Tansport Master synced successfully'];
         } catch (\Exception $e) {
             return ['status' => false, 'message' => $e->getMessage()];
         }
