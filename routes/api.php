@@ -49,4 +49,3 @@ Route::get('/airlinemastersync', [DataSyncController ::class, 'airlineMasterSync
 Route::get('/trainmastersync', [DataSyncController ::class, 'trainMasterSync']);
 Route::get('/activitysync', [DataSyncController ::class, 'activitySync']);
 Route::get('/monumentsync', [DataSyncController ::class, 'monumentSync']);
-
