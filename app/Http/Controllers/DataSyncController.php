@@ -1885,7 +1885,7 @@ class DataSyncController extends Controller
                         ['id' => $user->id],  // Match by primary key
                         [
                             'id' => $user->id,
-                            'Name' => $user->name,
+                            'Name' => Str::limit($user->name, 50, ''),
                             'StateId' => $user->stateId,
                             'CountryId' => $user->countryId,
                             'Status' => $user->status,
@@ -4115,6 +4115,7 @@ class DataSyncController extends Controller
                 $queryId = $prefix . $fyPart . '/' . $seq;
 
                 //////////////////////
+                $currencyId = $user->currencyId ?? null;
                 $currencyName = "";
                 $currency = DB::connection('mysql')
                     ->table('querycurrencymaster')
@@ -4251,6 +4252,7 @@ class DataSyncController extends Controller
                         "TaxableValue" => number_format($totalCostWithoutGST, 2),
                     ];
                 }
+                $currencyId = $querydata->currencyId ?? null;
                 // -------------------------------
                 // ✅ Fix InvoiceDetails JSON
                 // -------------------------------
@@ -4756,39 +4758,43 @@ class DataSyncController extends Controller
                 DB::connection('pgsql')
                     ->table('others.direct_clients')
                     ->updateOrInsert(
-                        ['id' => $user->id], // primary key sync
+                        ['id' => $user->id],
                         [
-                            'Title' => $title,
-                            'ContactType' => $contactType,
-                            'FirstName' => $user->firstName ?? null,
-                            'MiddleName' => $user->middleName ?? null,
-                            'LastName' => $user->lastName ?? null,
+                            'Title' => $this->limitString($title, 10),
+                            'ContactType' => $this->limitString($contactType, 50),
 
-                            // 🔢 Integer-safe fields
+                            'FirstName' => $this->limitString($user->firstName, 50),
+                            'MiddleName' => $this->limitString($user->middleName, 50),
+                            'LastName' => $this->limitString($user->lastName, 50),
+
                             'MarketType' => is_numeric($user->marketType ?? null) ? (int) $user->marketType : null,
                             'Nationality' => is_numeric($user->nationality ?? null) ? (int) $user->nationality : null,
                             'Country' => is_numeric($user->countryId ?? null) ? (int) $user->countryId : null,
                             'State' => is_numeric($user->stateId ?? null) ? (int) $user->stateId : null,
                             'City' => is_numeric($user->cityId ?? null) ? (int) $user->cityId : null,
 
-                            // ✅ Fixed Gender
                             'Gender' => $gender,
                             'Contactinfo' => $contactInfo,
-                            // ✅ Dates
+
                             'DOB' => $this->fixDate($user->birthDate ?? null),
                             'AnniversaryDate' => $this->fixDate($user->anniversaryDate ?? null),
+
                             'TourId' => $user->tourId ?? null,
                             'QueryId' => $user->queryId ?? null,
-                            'Remark1' => $user->remark1 ?? null,
-                            'EmergencyContactNumber' => $user->emergencyContact ?? null,
-                            'Agent' => $user->agentName ?? null,
-                            'UniqueId' => $uniqueId,
+
+                            'Remark1' => $this->limitString($user->remark1, 255),
+                            'EmergencyContactNumber' => $this->limitString($user->emergencyContact, 20),
+                            'Agent' => $this->limitString($user->agentName, 50),
+
+                            'UniqueId' => $this->limitString($uniqueId, 20),
+
                             'Status' => is_numeric($user->status ?? null) ? (int) $user->status : 1,
 
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]
                     );
+
             }
 
             return [
@@ -5148,4 +5154,11 @@ class DataSyncController extends Controller
             ];
         }
     }
+
+
+    private function limitString($value, $limit = 50)
+    {
+        return !empty($value) ? mb_substr(trim($value), 0, $limit) : null;
+    }
+
 }
