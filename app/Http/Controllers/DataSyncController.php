@@ -2874,7 +2874,7 @@ class DataSyncController extends Controller
                     ->map(fn($c) => [
                         "Division" => $c->division ?? '',
                         "NameTitle" => $c->nameTitle ?? '',
-                        "FirstName" => $c->firstName ?? '',
+                        "FirstName" => $c->contactPerson ?? $c->firstName,
                         "LastName" => $c->lastName ?? '',
                         "Designation" => $c->designation ?? '',
                         "CountryCode" => $c->countryCode ?? '',
