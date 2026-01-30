@@ -5123,15 +5123,20 @@ class DataSyncController extends Controller
                         ['id' => $user->id],
                         [
                             'FromDestination' => $this->pgInt($user->fromDestinationId),
-                            'ToDestination' => $this->pgInt($user->toDestinationId),
-
-                            'TransferMode' => $this->pgText($user->transferMode),
-
+                            //'ToDestination' => $this->pgInt($user->toDestinationId),
+                            //'TransferMode' => $this->pgText($user->transferMode),
                             'Title' => $this->pgText($user->otherTitle),
 
-                            'Description' => $this->pgText($user->description),
-
-                            'DrivingDistance' => $this->pgInt($user->driving_distance ?? 0),
+                            //'Description' => $this->pgText($user->description),
+                            // ✅ NEW JSON FIELD
+                            'ItenaryDescription' => json_encode([
+                                [
+                                    "Content" => '' ?? '',
+                                    "LanguageId" => 1,
+                                    "LanguageName" => "English"
+                                ]
+                            ]),
+                            //'DrivingDistance' => $this->pgInt($user->driving_distance ?? 0),
 
                             'Status' => $this->pgInt($user->status, 1),
 
