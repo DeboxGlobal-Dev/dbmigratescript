@@ -5131,7 +5131,7 @@ class DataSyncController extends Controller
                             // ✅ NEW JSON FIELD
                             'ItenaryDescription' => json_encode([
                                 [
-                                    "Content" => '' ?? '',
+                                    "Content" => $user->description ?? '',
                                     "LanguageId" => 1,
                                     "LanguageName" => "English"
                                 ]
