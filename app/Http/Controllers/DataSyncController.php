@@ -5122,7 +5122,7 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $user->id],
                         [
-                            'FromDestination' => $this->pgInt($user->fromDestinationId),
+                            'FromDestination' => $this->pgInt($user->toDestinationId) ?? $this->pgInt($user->fromDestinationId),
                             //'ToDestination' => $this->pgInt($user->toDestinationId),
                             //'TransferMode' => $this->pgText($user->transferMode),
                             'Title' => $this->pgText($user->otherTitle),
