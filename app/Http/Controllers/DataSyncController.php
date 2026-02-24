@@ -65,7 +65,6 @@ class DataSyncController extends Controller
         return trim(preg_replace('/[^\P{C}\n]+/u', '', $decoded));
     }
 
-
     // public function syncSupplierMaster()
     // {
     //     try {
@@ -208,14 +207,12 @@ class DataSyncController extends Controller
 
                     // isDestAll = 1 → ALL destinations
                     $destinationJson = json_encode($allDestinationIds);
-
                 } elseif (!empty($data->destinationId)) {
 
                     // Specific destinations
                     $destinationJson = json_encode(
                         array_map('intval', explode(',', $data->destinationId))
                     );
-
                 } else {
 
                     $destinationJson = json_encode([]);
@@ -688,8 +685,8 @@ class DataSyncController extends Controller
 
 
                 //------------------------------------
-// ACTIVITY LANGUAGE (ENGLISH ONLY)
-//------------------------------------
+                // ACTIVITY LANGUAGE (ENGLISH ONLY)
+                //------------------------------------
 
 
 
@@ -821,7 +818,6 @@ class DataSyncController extends Controller
                             'updated_at' => now(),
                         ]
                     );
-
             }
 
             return [
@@ -1531,7 +1527,7 @@ class DataSyncController extends Controller
                             $currencyId = $currency->id ?? '';
                             $currencyName = $currency->name ?? '';
                             $conversion = $currency->conversionRate ?? 1; // fallback only
-    
+
                             /* ---- Amounts ---- */
                             $adult = (float) $r->adultCost;
                             $child = (float) $r->childCost;
@@ -1623,7 +1619,7 @@ class DataSyncController extends Controller
                                 : '';
 
                             // while ($start->lte($end)) {
-    
+
                             //     $searchRows[] = [
                             //         "RateUniqueId" => $rateItem['UniqueID'],
                             //         "MonumentUID" => $monumentUUID,
@@ -1639,10 +1635,10 @@ class DataSyncController extends Controller
                             //         "created_at" => now(),
                             //         "updated_at" => now(),
                             //     ];
-    
+
                             //     $start->addDay();
                             // }
-    
+
                             $batch = [];
 
                             while ($start->lte($end)) {
@@ -2031,7 +2027,6 @@ class DataSyncController extends Controller
                 'status' => true,
                 'message' => 'Destination Master Data synced successfully'
             ];
-
         } catch (\Throwable $e) {
             return [
                 'status' => false,
@@ -2039,11 +2034,6 @@ class DataSyncController extends Controller
             ];
         }
     }
-
-
-
-
-
 
     public function hotelChainSync()
     {
@@ -4837,7 +4827,6 @@ class DataSyncController extends Controller
                             'updated_at' => now(),
                         ]
                     );
-
             }
 
             return [
@@ -5053,9 +5042,6 @@ class DataSyncController extends Controller
         }
     }
 
-
-
-
     public function marketTypeSync()
     {
         try {
@@ -5198,7 +5184,6 @@ class DataSyncController extends Controller
                 'status' => true,
                 'message' => 'Itinerary Info Data synced successfully'
             ];
-
         } catch (\Exception $e) {
             return [
                 'status' => false,
@@ -5207,12 +5192,93 @@ class DataSyncController extends Controller
         }
     }
 
-
-
-
     private function limitString($value, $limit = 50)
     {
         return !empty($value) ? mb_substr(trim($value), 0, $limit) : null;
     }
 
+    public function syncGuideNameMaster()
+    {
+        try {
+
+            $mysqlGuides = DB::connection('mysql')
+                ->table('tbl_guidemaster')
+                ->get();
+
+            foreach ($mysqlGuides as $user) {
+
+                // ✅ Generate UniqueID (4 digit format like store())
+                $uniqueId = !empty($user->id)
+                    ? 'GUI' . str_pad($user->id, 4, '0', STR_PAD_LEFT)
+                    : null;
+
+                // ✅ Prepare Destination as JSON array
+                $destinationIds = [];
+
+                if (!empty($user->destinationList)) {
+                    $destinationIds = explode(',', $user->destinationList);
+                }
+
+                // ✅ Prepare Languages as array
+                $languages = [];
+
+                if (!empty($user->languageListgit)) {
+                    $languages = explode(',', $user->languageList);
+                }
+
+                DB::connection('pgsql')
+                    ->table('guide.guide_masters')
+                    ->updateOrInsert(
+                        ['id' => $user->id],
+                        [
+                            'id' => $user->id,
+                            'UniqueID' => $uniqueId,
+                            'Name' => $user->name,
+                            'ServiceType' => 'Guide',
+                            'MobileNumber' => $user->phone,
+                            'WhatsappNumber' => $user->whatsappphone,
+                            'AlternateNumber' => $user->alternatephone,
+                            'Rating' => $user->guideRating,
+                            'Email' => $user->email,
+                            'GuideLicense' => $user->guideLicence,
+                            'LicenseExpiry' => null,
+                            'Address' => $user->address,
+                            'Destination' => json_encode($destinationIds),
+                            'Languages' => json_encode($languages),
+                            'PAN' => $user->panno,
+                            'GST' => $user->gstno,
+                            'guide_image' => $user->image,
+                            'Supplier' => $user->supplierId ?? 0,
+                            'ContactPerson' => $user->contactPerson,
+                            'Designation' => $user->designation,
+                            'Country' => $user->countryId,
+                            'State' => $user->stateId,
+                            'City' => $user->cityId,
+                            'Pincode' => $user->pinCode,
+                            'Remark' => $user->remark,
+                            'Feedback' => $user->feedback,
+                            'Default' => $user->isDefault ?? 0,
+                            'VaccinationStatus' => strtolower($user->vaccinationStatus) === 'yes' ? 1 : 0,
+                            'Details' => $user->description,
+                            'Status' => $user->status ?? 1,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Guide Name Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
 }

@@ -33,6 +33,7 @@ Route::get('/querymastersync', [DataSyncController ::class, 'queryMasterSync']);
 Route::get('/invoicemastersync', [DataSyncController ::class, 'invoiceMasterSync']);
 
 Route::get('/guidemastersync', [DataSyncController ::class, 'guideMasterSync']);
+Route::get('/guidenamemastersync', [DataSyncController ::class, 'syncGuideNameMaster']);
 
 Route::get('/hotelmastersync', [DataSyncController ::class, 'hotelMasterSync']);
 Route::get('/roomtypesync', [DataSyncController ::class, 'roomTypeSync']);
