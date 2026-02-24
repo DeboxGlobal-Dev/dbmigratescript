@@ -1531,7 +1531,7 @@ class DataSyncController extends Controller
                             $currencyId = $currency->id ?? '';
                             $currencyName = $currency->name ?? '';
                             $conversion = $currency->conversionRate ?? 1; // fallback only
-
+    
                             /* ---- Amounts ---- */
                             $adult = (float) $r->adultCost;
                             $child = (float) $r->childCost;
@@ -1622,9 +1622,32 @@ class DataSyncController extends Controller
                                 ? 'SUPP' . str_pad($rateItem['SupplierId'], 6, '0', STR_PAD_LEFT)
                                 : '';
 
+                            // while ($start->lte($end)) {
+    
+                            //     $searchRows[] = [
+                            //         "RateUniqueId" => $rateItem['UniqueID'],
+                            //         "MonumentUID" => $monumentUUID,
+                            //         "Date" => $start->toDateString(),
+                            //         "Destination" => $destinationUID,
+                            //         "SupplierUID" => $supplierUID,
+                            //         "CompanyId" => 0,
+                            //         "Currency" => $rateItem['CurrencyId'],
+                            //         "RateJson" => $rateJson,
+                            //         "Status" => 1,
+                            //         "AddedBy" => 1,
+                            //         "UpdatedBy" => 1,
+                            //         "created_at" => now(),
+                            //         "updated_at" => now(),
+                            //     ];
+    
+                            //     $start->addDay();
+                            // }
+    
+                            $batch = [];
+
                             while ($start->lte($end)) {
 
-                                $searchRows[] = [
+                                $batch[] = [
                                     "RateUniqueId" => $rateItem['UniqueID'],
                                     "MonumentUID" => $monumentUUID,
                                     "Date" => $start->toDateString(),
@@ -1632,7 +1655,7 @@ class DataSyncController extends Controller
                                     "SupplierUID" => $supplierUID,
                                     "CompanyId" => 0,
                                     "Currency" => $rateItem['CurrencyId'],
-                                    "RateJson" => $rateJson,
+                                    "RateJson" => $rateJson, // keep if needed
                                     "Status" => 1,
                                     "AddedBy" => 1,
                                     "UpdatedBy" => 1,
@@ -1640,8 +1663,26 @@ class DataSyncController extends Controller
                                     "updated_at" => now(),
                                 ];
 
+                                // Insert every 500 rows
+                                if (count($batch) >= 500) {
+                                    DB::connection('pgsql')
+                                        ->table('sightseeing.monument_search')
+                                        ->insertOrIgnore($batch);
+
+                                    $batch = [];
+                                }
+
                                 $start->addDay();
                             }
+
+                            // Insert remaining
+                            if (!empty($batch)) {
+                                DB::connection('pgsql')
+                                    ->table('sightseeing.monument_search')
+                                    ->insertOrIgnore($batch);
+                            }
+
+                            unset($batch);
                         }
 
                         /* ------------------------------------
@@ -1942,6 +1983,7 @@ class DataSyncController extends Controller
                     );
                 }
 
+
                 // ✅ STATIC LANGUAGE JSON (ONLY English changes)
                 $languageArray = [
                     [
@@ -2068,7 +2110,7 @@ class DataSyncController extends Controller
             foreach ($mysqlUsers as $user) {
 
                 $uniqueId = !empty($user->id) ? 'S' . str_pad($user->id, 6, '0', STR_PAD_LEFT) : '';
-
+                $accountNumber = preg_replace('/\D/', '', $user->accountNumber);
                 // ✅ Insert / Update data to PGSQL
                 DB::connection('pgsql')
                     ->table('others.bank_master')
@@ -2076,7 +2118,7 @@ class DataSyncController extends Controller
                         ['RPK' => $user->id],  // Match by primary key
                         [
                             'BankName' => $user->bankName,
-                            'AccountNumber' => $user->accountNumber,
+                            'AccountNumber' => $accountNumber,
                             'BranchAddress' => $user->branchAddress,
                             'UpiId' => null,
                             'AccountType' => $user->accountType ?? '',
@@ -3373,7 +3415,8 @@ class DataSyncController extends Controller
                         ['id' => $user->id],  // Match by primary key
                         [
                             'id' => $user->id,
-                            'ServiceType' => $user->serviceType,
+                            // 'ServiceType' => $user->serviceType,
+                            'ServiceType' => substr($user->serviceType, 0, 20),
                             'SacCode' => $user->sacCode,
                             'SetDefault' => $user->setDefault,
                             'GstSlabId' => $user->taxSlab,
@@ -3969,7 +4012,7 @@ class DataSyncController extends Controller
                         [
                             'id' => $user->id,
                             'QueryId' => $queryId,
-                            'ClientType' => $$clientType ?? 14,
+                            'ClientType' => $clientType ?? 14,
                             'LeadPax' => $user->leadPaxName,
                             'Subject' => $user->subject,
                             'FromDate' => $this->fixDate($user->fromDate),
@@ -4179,7 +4222,7 @@ class DataSyncController extends Controller
 
                 $baseFormat = "";
                 $lastNumber = 0;
-
+                $settingFormat = '';
                 // 🔵 DETERMINE TAX OR PROFORMA
                 if ($user->officewise_proformasq > 0) {
                     // PROFORMA
@@ -4192,7 +4235,7 @@ class DataSyncController extends Controller
                 }
 
                 // Remove extra numeric suffix (like 01) from the end
-                $settingFormat = preg_replace('/\d+$/', '', $settingFormat);
+                $settingFormat = preg_replace('/\d+$/', '', $settingFormat) ?? '';
                 // 🔵 CREATE FINAL INVOICE NUMBER
                 $nextNumber = str_pad($lastNumber, 4, '0', STR_PAD_LEFT);
                 $invoiceNumber = $settingFormat . $nextNumber;
@@ -5108,38 +5151,41 @@ class DataSyncController extends Controller
     public function itiInfoSync()
     {
         try {
-            // ✅ Read all data from MySQL
+
             $mysqlUsers = DB::connection('mysql')
                 ->table('iti_subjectmaster')
                 ->get();
 
             foreach ($mysqlUsers as $user) {
 
+                // ✅ Clean Title
+                $title = $user->otherTitle ?? '';
+                $title = mb_convert_encoding($title, 'UTF-8', 'UTF-8');
+                $title = preg_replace('/[\x00-\x1F\x7F]/u', '', $title);
 
-                // ✅ Insert / Update data to PGSQL
+                // ✅ Clean Description
+                $description = $user->description ?? '';
+                $description = mb_convert_encoding($description, 'UTF-8', 'UTF-8');
+                $description = preg_replace('/[\x00-\x1F\x7F]/u', '', $description);
+
                 DB::connection('pgsql')
                     ->table('others.itinerary_requirement')
                     ->updateOrInsert(
                         ['id' => $user->id],
                         [
-                            'FromDestination' => $this->pgInt($user->toDestinationId) ?? $this->pgInt($user->fromDestinationId),
-                            //'ToDestination' => $this->pgInt($user->toDestinationId),
-                            //'TransferMode' => $this->pgText($user->transferMode),
-                            'Title' => $this->pgText($user->otherTitle),
+                            'FromDestination' => $this->pgInt($user->fromDestinationId),
+                            'Title' => $title,
 
-                            //'Description' => $this->pgText($user->description),
-                            // ✅ NEW JSON FIELD
+                            // ✅ Column spelling exactly as in DB
                             'ItenaryDescription' => json_encode([
                                 [
-                                    "Content" => $user->description ?? '',
+                                    "Content" => $description,   // ✅ USE CLEANED VALUE
                                     "LanguageId" => 1,
                                     "LanguageName" => "English"
                                 ]
                             ]),
-                            //'DrivingDistance' => $this->pgInt($user->driving_distance ?? 0),
 
                             'Status' => $this->pgInt($user->status, 1),
-
                             'AddedBy' => 1,
                             'UpdatedBy' => 1,
                             'created_at' => now(),
@@ -5150,8 +5196,9 @@ class DataSyncController extends Controller
 
             return [
                 'status' => true,
-                'message' => 'Itinarary Info Data synced successfully'
+                'message' => 'Itinerary Info Data synced successfully'
             ];
+
         } catch (\Exception $e) {
             return [
                 'status' => false,
@@ -5159,6 +5206,8 @@ class DataSyncController extends Controller
             ];
         }
     }
+
+
 
 
     private function limitString($value, $limit = 50)
