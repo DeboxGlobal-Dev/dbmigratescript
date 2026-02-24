@@ -42,6 +42,8 @@ Route::get('/hotelchainsync', [DataSyncController ::class, 'hotelChainSync']);
 Route::get('/hotelcategorysync', [DataSyncController ::class, 'hotelCategorySync']);
 Route::get('/hoteltypesync', [DataSyncController ::class, 'hotelTypeSync']);
 
+Route::get('/restaurantmastersync', [DataSyncController ::class, 'syncRestaurantMaster']);
+
 Route::get('/vehicletypemastersync', [DataSyncController ::class, 'vehicleTypeMasterSync']);
 Route::get('/transfertypesync', [DataSyncController ::class, 'transferTypeSync']);
 Route::get('/transportmastersync', [DataSyncController ::class, 'transportMasterSync']);

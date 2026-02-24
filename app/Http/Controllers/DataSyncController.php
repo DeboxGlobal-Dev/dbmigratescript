@@ -5281,4 +5281,115 @@ class DataSyncController extends Controller
             ];
         }
     }
+
+    public function syncRestaurantMaster()
+    {
+        try {
+
+            // ✅ Get old MySQL data
+            $oldRestaurants = DB::connection('mysql')
+                ->table('inboundmealplanmaster')
+                ->get();
+
+            foreach ($oldRestaurants as $old) {
+
+                // ✅ Destination handling
+                $destinationId = $old->destinationId ?? null;
+
+                if (!$destinationId) {
+                    continue; // skip if no destination
+                }
+
+                $destinationJson = !empty($old->destinationId)
+                    ? json_encode(array_map('intval', explode(',', $old->destinationId)))
+                    : json_encode([]);
+
+                
+
+                // ✅ Generate UniqueID (keep old id mapping)
+                $uniqueId = 'RES' . str_pad($old->id, 4, '0', STR_PAD_LEFT);
+
+                // ✅ Convert Status properly
+                $status = strtolower($old->status) == 'active' ? 'Active' : 'InActive';
+
+                // ✅ Convert Default properly
+                $default = 'No';
+
+                // ✅ Fetch address from old addressmaster
+                $addressData = DB::connection('mysql')
+                    ->table('addressmaster')
+                    ->where('addressType', 'restaurant')
+                    ->where('addressParent', $old->id)
+                    ->first();
+
+                $address   = $addressData->address   ?? null;
+                $countryId = $addressData->countryId ?? null;
+                $stateId   = $addressData->stateId   ?? null;
+                $cityId    = $addressData->cityId    ?? null;
+                $pincode   = $addressData->pinCode   ?? null;
+                $gstn   = $addressData->gstn   ?? null;
+
+                // ✅ Fetch Contact person
+                $contactData = DB::connection('mysql')
+                    ->table('restaurantcontactpersonmaster')
+                    ->where('restaurantId', $old->id)
+                    ->first();
+
+                $cname   = $contactData->contactPerson   ?? null;
+                $cphone = $contactData->phone ?? null;
+                $cemail   = $contactData->email   ?? null;
+                $cdivision    = $contactData->division    ?? null;
+                $cdesignation   = $contactData->designation   ?? null;
+                $ccountryCode   = $contactData->countryCode   ?? null;
+
+                // ✅ Insert / Update in PGSQL
+                DB::connection('pgsql')
+                    ->table('restaurant.restaurant_master')
+                    ->updateOrInsert(
+                        ['id' => $old->id],
+                        [
+                            'id' => $old->id,
+                            'Name' => $old->mealPlanName,
+                            'UniqueID' => $uniqueId,
+                            'Destination' => $old->destinationId,
+                            'Address' => $address ?? '',
+                            'Country' => $countryId ?? '',
+                            'State' => $stateId ?? '',
+                            'City' => $cityId ?? '',
+                            'SelfSupplier' => $old->supplier ?? 0,
+                            'PinCode' => $pincode ?? '',
+                            'GSTN' => $gstn ?? '',
+                            'ContactType' => $cdivision ?? '',
+                            'ContactName' => $cname ?? '',
+                            'ContactDesignation' => $cdesignation ?? '',
+                            'CountryCode' => $ccountryCode ?? '',
+                            'Phone1' => $cphone ?? '',
+                            'Phone2' => $cphone ?? '',
+                            'Phone3' => $cphone ?? '',
+                            'ContactEmail' => $cemail ?? '',
+                            'ImageName' => $old->image ?? '',
+                            'Status' => $status,
+                            'Default' => $default,
+                            'RateJson' => null,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Restaurant Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
 }
