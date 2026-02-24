@@ -5310,7 +5310,7 @@ class DataSyncController extends Controller
                 $uniqueId = 'RES' . str_pad($old->id, 4, '0', STR_PAD_LEFT);
 
                 // ✅ Convert Status properly
-                $status = strtolower($old->status) == 'active' ? 'Active' : 'InActive';
+                $status = strtolower($old->status) == 1 ? 'Active' : 'InActive';
 
                 // ✅ Convert Default properly
                 $default = 'No';
