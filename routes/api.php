@@ -49,6 +49,9 @@ Route::get('/transfertypesync', [DataSyncController ::class, 'transferTypeSync']
 Route::get('/transportmastersync', [DataSyncController ::class, 'transportMasterSync']);
 
 Route::get('/airlinemastersync', [DataSyncController ::class, 'airlineMasterSync']);
+Route::get('/flightclasssync', [DataSyncController ::class, 'flightClassMasterSync']);
+
+
 Route::get('/trainmastersync', [DataSyncController ::class, 'trainMasterSync']);
 Route::get('/activitysync', [DataSyncController ::class, 'activitySync']);
 Route::get('/monmuentsync', [DataSyncController ::class, 'monumentSync']);

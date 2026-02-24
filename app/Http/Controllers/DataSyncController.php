@@ -5392,4 +5392,44 @@ class DataSyncController extends Controller
             ];
         }
     }
+
+    public function flightClassMasterSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('flightclassmaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('others.class_preference')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            'Status' => $user->status,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Flight Seat Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
 }
