@@ -50,10 +50,12 @@ Route::get('/hotelcategorysync', [DataSyncController ::class, 'hotelCategorySync
 Route::get('/hoteltypesync', [DataSyncController ::class, 'hotelTypeSync']);
 
 Route::get('/restaurantmastersync', [DataSyncController ::class, 'syncRestaurantMaster']);
+Route::get('/restaurantmealplansync', [DataSyncController ::class, 'restaurantMealPlanSync']);
 
 Route::get('/vehicletypemastersync', [DataSyncController ::class, 'vehicleTypeMasterSync']);
 Route::get('/transfertypesync', [DataSyncController ::class, 'transferTypeSync']);
 Route::get('/transportmastersync', [DataSyncController ::class, 'transportMasterSync']);
+Route::get('/drivermemastersync', [DataSyncController ::class, 'driverMasterSync']);
 
 Route::get('/airlinemastersync', [DataSyncController ::class, 'airlineMasterSync']);
 Route::get('/flightclasssync', [DataSyncController ::class, 'flightClassMasterSync']);

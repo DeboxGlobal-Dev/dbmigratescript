@@ -6285,4 +6285,122 @@ public function activitySync()
         }
     }
 
+    public function restaurantMealPlanSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('restaurantsmealplanmaster')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('restaurant.restaurant_meal_plan_master')
+                    ->updateOrInsert(
+                        ['id' => $user->id],  // Match by primary key
+                        [
+                            'id' => $user->id,
+                            'Name' => $user->name,
+                            //'SetDefault' => ($user->setDefault == 1) ? 'Yes' : 'No',
+                            'Status' => "Active",
+                            //'RPK'  => $user->id,
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Hotel Meal Plan Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function driverMasterSync()
+    {
+        try {
+
+            $oldData = DB::connection('mysql')
+                ->table('drivermaster')
+                ->get();
+
+            foreach ($oldData as $driver) {
+
+                //---------------------------------------
+                // SAFE DATE HANDLING
+                //---------------------------------------
+                $safeDate = function ($date) {
+
+                    if (empty($date) || $date == '0000-00-00') {
+                        return null;
+                    }
+
+                    try {
+                        $parsed = Carbon::parse($date);
+
+                        // Reject invalid years
+                        if ($parsed->year < 1900) {
+                            return null;
+                        }
+
+                        return $parsed->format('Y-m-d');
+
+                    } catch (\Exception $e) {
+                        return null;
+                    }
+                };
+
+                $birthDate = $safeDate($driver->birthDate ?? null);
+                $validUpto = $safeDate($driver->validUpto ?? null);
+
+                DB::connection('pgsql')
+                    ->table('transport.driver_master')
+                    ->updateOrInsert(
+                        ['id' => $driver->id], // match condition
+                        [
+                            'Country'           => $driver->countryId ?? null,
+                            'DriverName'        => $driver->name ?? null,
+                            'MobileNumber'      => $driver->mobile ?? null,
+                            'AlternateMobileNo' => $driver->alternateMobile ?? null,
+                            'WhatsappNumber'    => $driver->whatsappNo ?? null,
+                            'LicenseNumber'     => $driver->licenseNo ?? null,
+                            'BirthDate'         => $birthDate,
+                            'LicenseName'       => $driver->fileAttachment ?? null,
+                            'LicenseData'       => $driver->LicenseData ?? null,
+                            'PassportNumber'    => $driver->passportNo ?? null,
+                            'Address'           => $driver->address ?? null,
+                            'ValidUpto'         => $validUpto,
+                            'Status'            => (int) ($driver->Status ?? 1),
+                            'AddedBy'           => 1,
+                            'UpdatedBy'         => 1,
+                            'created_at'        => now(),
+                            'updated_at'        => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Driver Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
 }
