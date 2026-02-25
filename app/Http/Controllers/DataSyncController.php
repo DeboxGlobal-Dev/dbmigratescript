@@ -5236,7 +5236,7 @@ public function activitySync()
                             'OfficeName' => "Head Office",
                             //'MetDuring'           => "",
                             'Title' => "",
-                            'FirstName' => $user->contactPerson ?? '',
+                            'FirstName' => $user->contactPerson ?? $user->firstName,
                             'LastName' => $user->lastName ?? '',
                             'Email' => $this->safeTripleDecode($user->email) ?? '',
                             'Phone' => $this->safeTripleDecode($user->phone) ?? '',
