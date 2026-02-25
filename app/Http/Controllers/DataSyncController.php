@@ -6237,4 +6237,52 @@ public function activitySync()
         }
     }
 
+    public function agentAddressSync()
+    {
+        try {
+            // ✅ Read all data from MySQL
+            $mysqlUsers = DB::connection('mysql')
+                ->table('addressmaster')
+                ->where('addressType', 'corporate')
+                ->get();
+
+            foreach ($mysqlUsers as $user) {
+
+                // ✅ Insert / Update data to PGSQL
+                DB::connection('pgsql')
+                    ->table('others.office_address')
+                    ->updateOrInsert(
+                        //['id' => $user->id],  // Match by primary key
+                        [
+                            //'id' => $user->id,
+                            'Name' => $user->officeName ?? '',
+                            'Type' => 'Agent',
+                            'Country' => $user->countryId ?? '',
+                            'Fk_partnerid' => $user->addressParent ?? '',
+                            'State' => $user->stateId ?? '',
+                            'City' => $user->cityId ?? '',
+                            'Address' => $user->address ?? '',
+                            'PinCode' => $user->pinCode ?? '',
+                            'Gstn' => $user->gstn ?? '',
+                            'Pan' => $user->PAN ?? '',
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Agent Address Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
 }
