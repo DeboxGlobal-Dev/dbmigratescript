@@ -1473,6 +1473,7 @@ public function activitySync()
 
                 // ADD MULTIPLE SERVICE COSTS
                 $groupedRates[$groupKey]["ServiceCost"][] = [
+                    "Min" => $rate->fromPax ?? "",
                     "UpToPax" => $rate->maxpax ?? "",
                     "Rounds" => 1,
                     "Class" => 1,
