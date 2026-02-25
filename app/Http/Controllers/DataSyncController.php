@@ -6119,7 +6119,6 @@ public function activitySync()
 
                 // ✅ Convert Default properly
                 $default = 'No';
-
                 // ✅ Fetch address from old addressmaster
                 $addressData = DB::connection('mysql')
                     ->table('addressmaster')
