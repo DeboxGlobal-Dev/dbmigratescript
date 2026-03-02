@@ -3785,7 +3785,7 @@ public function activitySync()
                         'DBL' => (float) $r->doubleoccupancy,
                         'TPL' => (float) $r->tripleoccupancy,
                         'ExtraBed(A)' => (float) $r->extraBed,
-                        'ExtraBed(C)' => (float) $r->childwithextrabed,
+                        'ExtraBed(C)' => (float) $r->childwithextrabed ?? $r->childwithbed,
                     ];
 
                     foreach ($roomMap as $roomName => $roomCost) {
@@ -4007,6 +4007,8 @@ public function activitySync()
             return ['status' => false, 'message' => $e->getMessage()];
         }
     }
+
+
 
 
     public function roomTypeSync()
