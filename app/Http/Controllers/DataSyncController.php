@@ -3636,8 +3636,8 @@ public function activitySync()
         try {
 
             /* -------------------------------------------------
-         | PRELOAD MASTER TABLES (PERFORMANCE)
-         -------------------------------------------------*/
+            | PRELOAD MASTER TABLES (PERFORMANCE)
+            -------------------------------------------------*/
             $destinations = DB::connection('mysql')->table('destinationmaster')->get()->keyBy('name');
             $countries = DB::connection('mysql')->table('countrymaster')->get()->keyBy('name');
             $suppliers = DB::connection('mysql')->table('suppliersmaster')->get()->keyBy('id');
@@ -3780,34 +3780,52 @@ public function activitySync()
                     $roomBedTypeArray = [];
                     $roomTotalCost = 0;
 
+                    // $roomMap = [
+                    //     'SGL' => (float) $r->singleoccupancy,
+                    //     'DBL' => (float) $r->doubleoccupancy,
+                    //     'TPL' => (float) $r->tripleoccupancy,
+                    //     'ExtraBed(A)' => (float) $r->extraBed,
+                    //     'ExtraBed(C)' => (float) $r->childwithextrabed ?? $r->childwithbed,
+                    // ];
+
                     $roomMap = [
-                        'SGL' => (float) $r->singleoccupancy,
-                        'DBL' => (float) $r->doubleoccupancy,
-                        'TPL' => (float) $r->tripleoccupancy,
-                        'ExtraBed(A)' => (float) $r->extraBed,
-                        'ExtraBed(C)' => (float) $r->childwithextrabed ?? $r->childwithbed,
+                        [
+                            "id" => 3,
+                            "name" => "SGL Room",
+                            "cost" => (float) $r->singleoccupancy
+                        ],
+                        [
+                            "id" => 4,
+                            "name" => "DBL Room",
+                            "cost" => (float) $r->doubleoccupancy
+                        ],
+                        [
+                            "id" => 5,
+                            "name" => "TWIN Room",
+                            "cost" => (float) ($r->twinoccupancy ?? 0)
+                        ],
+                        [
+                            "id" => 6,
+                            "name" => "TPL Room",
+                            "cost" => (float) $r->tripleoccupancy
+                        ],
+                        [
+                            "id" => 7,
+                            "name" => "ExtraBed(A)",
+                            "cost" => (float) $r->extraBed
+                        ],
+                        [
+                            "id" => 8,
+                            "name" => "ExtraBed(C)",
+                            "cost" => (float) ($r->childwithextrabed ?? $r->childwithbed)
+                        ]
                     ];
 
-                    foreach ($roomMap as $roomName => $roomCost) {
+                    foreach ($roomMap as $room) {
 
-                        $roomCost = (float) $roomCost;
-
-                        $gstPercent = 0;
-
-                        // if ($roomCost > 0) {
-                        //     $gstSlab = DB::connection('mysql')
-                        //         ->table('gstmaster')
-                        //         ->where('serviceType', 'Hotel')
-                        //         ->where('status', 1)
-                        //         ->where('deletestatus', 0)
-                        //         ->where('priceRangeFrom', '<=', (int)$roomCost)
-                        //         ->where('priceRangeTo', '>=', (int)$roomCost)
-                        //         ->first();
-
-                        //     if ($gstSlab) {
-                        //         $gstPercent = (float)$gstSlab->gstValue;
-                        //     }
-                        // }
+                        $roomName = $room['name'];
+                        $roomCost = (float) $room['cost'];
+                        $roomId   = $room['id'];
 
                         $gstPercent = $this->getGstPercent('Hotel', $roomCost);
 
@@ -3817,6 +3835,7 @@ public function activitySync()
                         $roomTotalCost += $totalCost;
 
                         $roomBedTypeArray[] = [
+                            "RoomBedTypeId" => $roomId,
                             "RoomBedTypeName" => $roomName,
                             "RoomCost" => number_format($roomCost, 2, '.', ''),
                             "RoomTaxValue" => $gstPercent . '%',
@@ -3829,14 +3848,28 @@ public function activitySync()
                     $mealTotalCost = 0;
 
                     $mealMap = [
-                        'Breakfast' => (float) $r->breakfast,
-                        'Lunch' => (float) $r->lunch,
-                        'Dinner' => (float) $r->dinner,
+                        [
+                            "id" => 1,
+                            "name" => "Breakfast",
+                            "cost" => (float) $r->breakfast
+                        ],
+                        [
+                            "id" => 2,
+                            "name" => "Lunch",
+                            "cost" => (float) $r->lunch
+                        ],
+                        [
+                            "id" => 3,
+                            "name" => "Dinner",
+                            "cost" => (float) $r->dinner
+                        ]
                     ];
 
-                    foreach ($mealMap as $mealName => $mealCost) {
+                    foreach ($mealMap as $meal) {
 
-                        $mealCost = (float) $mealCost;
+                        $mealId = $meal['id'];
+                        $mealName = $meal['name'];
+                        $mealCost = (float) $meal['cost'];
                         $gstPercent = 0;
 
                         // if ($mealCost > 0) {
@@ -3860,11 +3893,13 @@ public function activitySync()
                         $mealTotalCost += $totalCost;
 
                         $mealTypeArray[] = [
+                            "MealTypeId" => (string) $mealId,
                             "MealTypeName" => $mealName,
-                            "MealCost" => number_format($mealCost, 2, '.', ''),
-                            "MealTaxValue" => $gstPercent . '%',
+                            "MealCost" => $mealCost ?: null,
+                            "MealTaxSlabName" => $gstPercent . '%',
+                            "MealTaxValue" => (string) $gstPercent,
                             "MealCostRateValue" => number_format($gstAmount, 2, '.', ''),
-                            "MealTotalCost" => number_format($totalCost, 2, '.', ''),
+                            "MealTotalCost" => number_format($totalCost, 2, '.', '')
                         ];
                     }
 
