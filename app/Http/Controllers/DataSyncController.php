@@ -3596,17 +3596,17 @@ public function activitySync()
     //     }
     // }
 
-
-
-    private function getGstPercent(string $serviceType, float $amount): float
+    private function getGstDetails(string $serviceType, float $amount): array
     {
         if ($amount <= 0) {
-            return 0;
+            return [
+                'gstValue' => 0,
+                'gstSlabName' => '0%'
+            ];
         }
 
         static $hasSlabColumns = null;
 
-        // Check columns ONCE
         if ($hasSlabColumns === null) {
             $hasSlabColumns =
                 Schema::connection('mysql')->hasColumn('gstmaster', 'priceRangeFrom') &&
@@ -3619,7 +3619,6 @@ public function activitySync()
             ->where('status', 1)
             ->where('deletestatus', 0);
 
-        // Apply slab ONLY if columns exist
         if ($hasSlabColumns) {
             $query->where('priceRangeFrom', '<=', (int) $amount)
                 ->where('priceRangeTo', '>=', (int) $amount);
@@ -3627,7 +3626,17 @@ public function activitySync()
 
         $row = $query->first();
 
-        return $row ? (float) $row->gstValue : 0;
+        if (!$row) {
+            return [
+                'gstValue' => 0,
+                'gstSlabName' => '0%'
+            ];
+        }
+
+        return [
+            'gstValue' => (float) $row->gstValue,
+            'gstSlabName' => $row->gstSlabName
+        ];
     }
 
     ///fast chunk version
@@ -3820,24 +3829,31 @@ public function activitySync()
                             "cost" => (float) ($r->childwithextrabed ?? $r->childwithbed)
                         ]
                     ];
-
+                    $roomTaxSlabId = null;
+                    $roomTaxSlabName = null;
                     foreach ($roomMap as $room) {
 
                         $roomName = $room['name'];
                         $roomCost = (float) $room['cost'];
                         $roomId   = $room['id'];
 
-                        $gstPercent = $this->getGstPercent('Hotel', $roomCost);
+                        $gst = $this->getGstDetails('Hotel', $roomCost);
 
+                        $gstPercent = $gst['gstValue'];
+                        $gstSlabName = $gst['gstSlabName'];
                         $gstAmount = round(($roomCost * $gstPercent) / 100, 2);
                         $totalCost = round($roomCost + $gstAmount, 2);
 
                         $roomTotalCost += $totalCost;
 
+                        $roomTaxSlabValue = $gstSlabName;
+                        $roomTaxSlabName = $gstSlabName;
+
                         $roomBedTypeArray[] = [
                             "RoomBedTypeId" => $roomId,
                             "RoomBedTypeName" => $roomName,
                             "RoomCost" => number_format($roomCost, 2, '.', ''),
+                            "RoomTaxSlabName" => $gstSlabName,
                             "RoomTaxValue" => $gstPercent . '%',
                             "RoomCostRateValue" => number_format($gstAmount, 2, '.', ''),
                             "RoomTotalCost" => number_format($totalCost, 2, '.', ''),
@@ -3865,6 +3881,8 @@ public function activitySync()
                         ]
                     ];
 
+                    $mealSlabValue = null;
+                    $mealSlabName = null;
                     foreach ($mealMap as $meal) {
 
                         $mealId = $meal['id'];
@@ -3886,17 +3904,24 @@ public function activitySync()
                         //         $gstPercent = (float)$gstSlab->gstValue;
                         //     }
                         // }
-                        $gstPercent = $this->getGstPercent('Restaurant', $mealCost);
+                        $gst = $this->getGstDetails('Restaurant', $mealCost);
+
+                        $gstPercent = $gst['gstValue'];
+                        $gstSlabName = $gst['gstSlabName'];
+
                         $gstAmount = round(($mealCost * $gstPercent) / 100, 2);
                         $totalCost = round($mealCost + $gstAmount, 2);
 
                         $mealTotalCost += $totalCost;
 
+                        $mealSlabValue = $gstPercent;
+                        $mealSlabName = $gstSlabName;
+
                         $mealTypeArray[] = [
                             "MealTypeId" => (string) $mealId,
                             "MealTypeName" => $mealName,
                             "MealCost" => $mealCost ?: null,
-                            "MealTaxSlabName" => $gstPercent . '%',
+                            "MealTaxSlabName" => $gstSlabName,
                             "MealTaxValue" => (string) $gstPercent,
                             "MealCostRateValue" => number_format($gstAmount, 2, '.', ''),
                             "MealTotalCost" => number_format($totalCost, 2, '.', '')
@@ -3932,20 +3957,23 @@ public function activitySync()
                         "SeasonYear" => $r->seasonYear,
 
                         "RoomTypeId" => (int) $r->roomType,
+                        "RoomTypeID" => (int) $r->roomType,
                         "RoomTypeName" => $roomTypes[$r->roomType]->name ?? "",
 
                         "MealPlanId" => $r->mealPlan,
                         "MealPlanName" => $mealPlans[$r->mealPlan]->name ?? "",
 
                         "CurrencyId" => (int) $r->currencyId,
-                        "CurrencyName" => "INR",
-
+                        "CurrencyName" => "",
+                        "RoomTaxSlabId" => $roomTaxSlabName ?? '',
+                        "MealSlabId" => $mealSlabValue ?? '',
+                        "MealSlabName" => $mealSlabName ?? '',
                         "RoomBedType" => $roomBedTypeArray,
-
+                        
                         "MealType" => $mealTypeArray,
 
                         "TAC" => $r->roomTAC,
-                        "MarkupType" => $r->markupType,
+                        "MarkupType" => ($r->markupType  == 1) ? 'Percentage' : 'Flat',
                         "MarkupCost" => $r->markupCost ?? 0,
 
                         "TotalCost" => number_format(
@@ -4042,8 +4070,6 @@ public function activitySync()
             return ['status' => false, 'message' => $e->getMessage()];
         }
     }
-
-
 
 
     public function roomTypeSync()
