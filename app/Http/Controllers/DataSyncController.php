@@ -274,11 +274,9 @@ class DataSyncController extends Controller
     {
         try {
 
-            /*
-            |---------------------------------------------
-            | Load master tables once
-            |---------------------------------------------
-            */
+            /* -------------------------
+            Master Tables Load
+            --------------------------*/
 
             $suppliers = DB::connection('mysql')
                 ->table('suppliersmaster')
@@ -300,16 +298,16 @@ class DataSyncController extends Controller
                 ->table('gstmaster')
                 ->pluck('gstSlabName', 'id');
 
-            /*
-            |---------------------------------------------
-            | Transport Masters
-            |---------------------------------------------
-            */
+
+            /* -------------------------
+            Transport Master
+            --------------------------*/
 
             $masters = DB::connection('mysql')
                 ->table('packagebuildertransportmaster')
                 ->where('deletestatus', 0)
                 ->get();
+
 
             foreach ($masters as $data) {
 
@@ -319,11 +317,9 @@ class DataSyncController extends Controller
 
                 $uniqueId = 'TPT' . str_pad($data->id, 6, '0', STR_PAD_LEFT);
 
-                /*
-                |---------------------------------------------
-                | Destination Fix
-                |---------------------------------------------
-                */
+                /* -------------------------
+                Destination
+                --------------------------*/
 
                 $destinationIds = explode(',', $data->destinationId);
                 $firstDestinationId = (int) $destinationIds[0];
@@ -332,68 +328,111 @@ class DataSyncController extends Controller
 
                 $destinationJson = json_encode(array_map('intval', $destinationIds));
 
-                /*
-                |---------------------------------------------
-                | Fetch Rates
-                |---------------------------------------------
-                */
+
+                /* -------------------------
+                Fetch Rates
+                --------------------------*/
 
                 $rates = DB::connection('mysql')
                     ->table('dmctransferrate')
                     ->where('transferNameId', $data->id)
                     ->get();
 
-                $vehicleTypes = [];
 
-                $supplierId = 0;
-                $supplierName = '';
-                $gstId = 0;
-                $gstValue = 0;
-                $gstName = '';
+                if ($rates->isEmpty()) {
+                    continue;
+                }
 
-                foreach ($rates as $rate) {
 
-                    $vehicleTypeName = $vehicles[$rate->vehicleTypeId] ?? '';
+                /* -------------------------
+                Group by Supplier
+                --------------------------*/
 
-                    $supplierId = $rate->supplierId;
-                    $supplierName = $suppliers[$rate->supplierId] ?? '';
+                $supplierGroups = $rates->groupBy(function ($row) {
+                    return $row->supplierId ?? 0;
+                });
 
-                    $gstId = $rate->gstTax;
-                    $gstValue = $gstValues[$rate->gstTax] ?? 0;
-                    $gstName = $gstNames[$rate->gstTax] ?? '';
+                $rateDetails = [];
 
-                    $totalCost =
-                        (int) $rate->vehicleCost +
-                        (int) $rate->parkingFee +
-                        (int) $rate->representativeEntryFee +
-                        (int) $rate->assistance +
-                        (int) $rate->guideAllowance +
-                        (int) $rate->interStateAndToll +
-                        (int) $rate->miscellaneous;
 
-                    $grandTotal = $totalCost + ($totalCost * ($gstValue / 100));
+                foreach ($supplierGroups as $supplierId => $supplierRates) {
 
-                    $vehicleTypes[] = [
+                    $supplierName = $suppliers[$supplierId] ?? '';
 
-                        "VehicleTypeId" => $rate->vehicleTypeId,
-                        "VehicleTypeName" => $vehicleTypeName,
-                        "VehicleCost" => (int) $rate->vehicleCost,
-                        "ParkingFee" => (int) $rate->parkingFee,
-                        "RapEntryFee" => (int) $rate->representativeEntryFee,
-                        "Assistance" => (int) $rate->assistance,
-                        "AdtnlAllowance" => (int) $rate->guideAllowance,
-                        "InterStateToll" => (int) $rate->interStateAndToll,
-                        "MiscCost" => (int) $rate->miscellaneous,
-                        "TotalCost" => $totalCost,
-                        "GrandTotal" => $grandTotal
+                    $vehicleTypes = [];
+
+                    $gstId = 0;
+                    $gstValue = 0;
+                    $gstName = '';
+
+                    foreach ($supplierRates as $rate) {
+
+                        $vehicleTypeName = $vehicles[$rate->vehicleTypeId] ?? '';
+
+                        $gstId = $rate->gstTax;
+                        $gstValue = $gstValues[$rate->gstTax] ?? 0;
+                        $gstName = $gstNames[$rate->gstTax] ?? '';
+
+                        $totalCost =
+                            (int) $rate->vehicleCost +
+                            (int) $rate->parkingFee +
+                            (int) $rate->representativeEntryFee +
+                            (int) $rate->assistance +
+                            (int) $rate->guideAllowance +
+                            (int) $rate->interStateAndToll +
+                            (int) $rate->miscellaneous;
+
+                        $grandTotal = $totalCost + ($totalCost * ($gstValue / 100));
+
+
+                        /* vehicle unique key */
+                        $vehicleTypes[$rate->vehicleTypeId] = [
+
+                            "VehicleTypeId" => $rate->vehicleTypeId,
+                            "VehicleTypeName" => $vehicleTypeName,
+                            "VehicleCost" => (int) $rate->vehicleCost,
+                            "ParkingFee" => (int) $rate->parkingFee,
+                            "RapEntryFee" => (int) $rate->representativeEntryFee,
+                            "Assistance" => (int) $rate->assistance,
+                            "AdtnlAllowance" => (int) $rate->guideAllowance,
+                            "InterStateToll" => (int) $rate->interStateAndToll,
+                            "MiscCost" => (int) $rate->miscellaneous,
+                            "TotalCost" => $totalCost,
+                            "GrandTotal" => $grandTotal
+                        ];
+                    }
+
+                    $rateDetails[] = [
+
+                        "UniqueID" => (string) Str::uuid(),
+                        "SupplierId" => $supplierId,
+                        "SupplierName" => $supplierName,
+                        "DestinationID" => $firstDestinationId,
+                        "DestinationName" => $destinationName,
+                        "ValidFrom" => $supplierRates->first()->fromDate ?? null,
+                        "ValidTo" => $supplierRates->first()->toDate ?? null,
+                        "TransferTypeId" => $data->transferType,
+                        "MarketTypeId" => 1,
+                        "MarketTypeName" => "General",
+
+                        "TaxSlabId" => $gstId,
+                        "TaxSlabName" => $gstName,
+                        "TaxSlabValue" => $gstValue,
+
+                        "VehicleType" => array_values($vehicleTypes),
+
+                        "Status" => $data->status,
+                        "AddedBy" => 1,
+                        "UpdatedBy" => 1,
+                        "AddedDate" => now(),
+                        "UpdatedDate" => now()
                     ];
                 }
 
-                /*
-                |---------------------------------------------
-                | Create Rate JSON
-                |---------------------------------------------
-                */
+
+                /* -------------------------
+                JSON
+                --------------------------*/
 
                 $rateJson = [
 
@@ -402,8 +441,6 @@ class DataSyncController extends Controller
                     "TransportName" => $data->transferName,
                     "DestinationID" => $firstDestinationId,
                     "DestinationName" => $destinationName,
-                    "CompanyId" => "",
-                    "CompanyName" => "",
 
                     "Header" => [
                         "RateChangeLog" => []
@@ -411,50 +448,16 @@ class DataSyncController extends Controller
 
                     "Data" => [
                         [
-                            "Total" => count($rates),
-
-                            "RateDetails" => [
-                                [
-                                    "UniqueID" => (string) Str::uuid(),
-                                    "SupplierId" => $supplierId,
-                                    "SupplierName" => $supplierName,
-                                    "DestinationID" => $firstDestinationId,
-                                    "DestinationName" => $destinationName,
-                                    "ValidFrom" => $rates->first()->fromDate ?? null,
-                                    "ValidTo" => $rates->first()->toDate ?? null,
-                                    "TransferTypeId" => $data->transferType,
-                                    "TransferTypeName" => "",
-                                    "Type" => "",
-                                    "MarketTypeId" => 1,
-                                    "MarketTypeName" => "General",
-
-                                    "TaxSlabId" => $gstId,
-                                    "TaxSlabName" => $gstName,
-                                    "TaxSlabValue" => $gstValue,
-
-                                    "CurrencyId" => "",
-                                    "CurrencyName" => "",
-                                    "CurrencyConversion" => "",
-
-                                    "VehicleType" => $vehicleTypes,
-
-                                    "Remarks" => "",
-                                    "Status" => $data->status,
-                                    "AddedBy" => 1,
-                                    "UpdatedBy" => 1,
-                                    "AddedDate" => now(),
-                                    "UpdatedDate" => now()
-                                ]
-                            ]
+                            "Total" => count($rateDetails),
+                            "RateDetails" => $rateDetails
                         ]
                     ]
                 ];
 
-                /*
-                |---------------------------------------------
-                | Insert / Update
-                |---------------------------------------------
-                */
+
+                /* -------------------------
+                Insert / Update
+                --------------------------*/
 
                 $record = [
                     'Name' => $data->transferName,
@@ -465,13 +468,14 @@ class DataSyncController extends Controller
                     'Status' => $data->status,
                     'AddedBy' => 1,
                     'UpdatedBy' => 1,
-                    'updated_at' => now(),
+                    'updated_at' => now()
                 ];
 
                 $exists = DB::connection('pgsql')
                     ->table('transport.transport_master')
                     ->where('id', $data->id)
                     ->exists();
+
 
                 if ($exists) {
 
@@ -2572,7 +2576,7 @@ class DataSyncController extends Controller
                             $currencyId = $currency->id ?? '';
                             $currencyName = $currency->name ?? '';
                             $conversion = $currency->conversionRate ?? 1; // fallback only
-
+    
                             /* ---- Amounts ---- */
                             $adult = (float) $r->adultCost;
                             $child = (float) $r->childCost;
@@ -2664,7 +2668,7 @@ class DataSyncController extends Controller
                                 : '';
 
                             // while ($start->lte($end)) {
-
+    
                             //     $searchRows[] = [
                             //         "RateUniqueId" => $rateItem['UniqueID'],
                             //         "MonumentUID" => $monumentUUID,
@@ -2680,10 +2684,10 @@ class DataSyncController extends Controller
                             //         "created_at" => now(),
                             //         "updated_at" => now(),
                             //     ];
-
+    
                             //     $start->addDay();
                             // }
-
+    
                             $batch = [];
 
                             while ($start->lte($end)) {
@@ -4065,7 +4069,11 @@ class DataSyncController extends Controller
                         [
                             "id" => 8,
                             "name" => "ExtraBed(C)",
-                            "cost" => (float) ($r->childwithextrabed ?? $r->childwithbed)
+                            "cost" => (float) (
+                                !empty($r->childwithextrabed)
+                                ? $r->childwithextrabed
+                                : (!empty($r->childwithbed) ? $r->childwithbed : 0)
+                            )
                         ]
                     ];
                     $roomTaxSlabId = null;
@@ -4074,7 +4082,7 @@ class DataSyncController extends Controller
 
                         $roomName = $room['name'];
                         $roomCost = (float) $room['cost'];
-                        $roomId   = $room['id'];
+                        $roomId = $room['id'];
 
                         $gst = $this->getGstDetails('Hotel', $roomCost);
 
@@ -4208,11 +4216,11 @@ class DataSyncController extends Controller
                         "MealSlabId" => $mealSlabValue ?? '',
                         "MealSlabName" => $mealSlabName ?? '',
                         "RoomBedType" => $roomBedTypeArray,
-                        
+
                         "MealType" => $mealTypeArray,
 
                         "TAC" => $r->roomTAC,
-                        "MarkupType" => ($r->markupType  == 1) ? 'Percentage' : 'Flat',
+                        "MarkupType" => ($r->markupType == 1) ? 'Percentage' : 'Flat',
                         "MarkupCost" => $r->markupCost ?? 0,
 
                         "TotalCost" => number_format(
@@ -5164,41 +5172,159 @@ class DataSyncController extends Controller
 
             foreach ($guides as $g) {
 
-                // 🔹 Destination
+                /* -----------------------------
+                DESTINATION
+                -----------------------------*/
+
                 $destination = DB::connection('mysql')
                     ->table('destinationmaster')
-                    ->where('id', $g->destinationId ?? null)
+                    ->where('id', $g->destinationId)
                     ->first();
 
-                $destinationJson = json_encode([
-                    'id' => $destination->id ?? null,
-                    'Name' => $destination->name ?? ''
-                ], JSON_UNESCAPED_UNICODE);
+                $destinationName = $destination->name ?? '';
 
-                // 🔹 Service Name (safe)
-                $serviceName =
-                    $g->guideName
-                    ?? $g->guidename
-                    ?? $g->subcatname
-                    ?? $g->name
-                    ?? 'Guide Service';
+                /* -----------------------------
+                SERVICE NAME
+                -----------------------------*/
 
-                // 🔹 FORCE max 50 chars (DB-safe)
-                $serviceName = Str::limit(trim($serviceName), 50, '');
+                $serviceName = $g->name ?? 'Guide Service';
 
-                // 🔹 Unique ID (PRIMARY KEY replacement)
+                /* -----------------------------
+                UNIQUE ID
+                -----------------------------*/
+
                 $uniqueId = 'GUIS' . str_pad($g->id, 4, '0', STR_PAD_LEFT);
 
-                // 🔹 Insert / Update
+                /* -----------------------------
+                FETCH RATE DATA
+                -----------------------------*/
+
+                $rates = DB::connection('mysql')
+                    ->table('dmcguideporterrate')
+                    ->where('serviceid', $g->id)   // IMPORTANT FIX
+                    ->get();
+
+                $rateDetails = [];
+
+                if ($rates->count()) {
+
+                    $groupedRates = $rates->groupBy(function ($item) {
+                        return $item->supplierId . '_' . $item->fromDate . '_' . $item->toDate . '_' . $item->dayType;
+                    });
+
+                    foreach ($groupedRates as $group) {
+
+                        $first = $group->first();
+
+                        /* SUPPLIER NAME */
+
+                        $supplier = DB::connection('mysql')
+                            ->table('suppliersmaster')
+                            ->where('id', $first->supplierId)
+                            ->first();
+
+                        $supplierName = $supplier->name ?? '';
+
+                        /* SERVICE COST */
+
+                        $serviceCost = [];
+
+                        foreach ($group as $r) {
+
+                            $range = explode('-', $r->paxRange);
+
+                            $start = $range[0] ?? 1;
+                            $end = $range[1] ?? $start;
+
+                            $serviceCost[] = [
+                                "StartPax" => (int) $start,
+                                "EndPax" => (int) $end,
+                                "GuideFullDayFee" => (int) $r->price,
+                                "GuideHalfDayFee" => (int) $r->price,
+                                "LAFullDayFee" => (int) $r->languageAllowance,
+                                "LAHalfDayFee" => (int) $r->languageAllowance,
+                                "OthersFullDayFee" => (int) $r->otherCost,
+                                "OthersHalfDayFee" => (int) $r->otherCost,
+                                "Remarks" => $r->remarks ?? ''
+                            ];
+                        }
+
+                        $rateDetails[] = [
+
+                            "UniqueID" => (string) Str::uuid(),
+
+                            "SupplierId" => $first->supplierId,
+                            "SupplierName" => $supplierName,
+
+                            "ValidFrom" => $first->fromDate,
+                            "ValidTo" => $first->toDate,
+
+                            "DayTime" => $first->dayType ?? '',
+
+                            "UniversalCost" => $first->universalCost ? "Yes" : "No",
+
+                            "GuideId" => null,
+                            "GuideName" => "",
+
+                            "CurrencyId" => (string) $first->currencyId,
+                            "CurrencyName" => "INR",
+
+                            "ServiceCost" => $serviceCost,
+
+                            "GstSlabid" => (string) $first->guideGST,
+                            "GstSlabName" => "IT",
+                            "GstSlabValue" => 0,
+
+                            "TotalCost" => collect($serviceCost)->sum('GuideFullDayFee'),
+
+                            "Status" => (string) $first->status,
+
+                            "AddedBy" => (string) $first->addBy,
+                            "UpdatedBy" => (string) $first->addBy,
+
+                            "AddedDate" => date('Y-m-d', $first->dateAdded),
+                            "UpdatedDate" => date('Y-m-d', $first->dateAdded)
+                        ];
+                    }
+                }
+
+                /* -----------------------------
+                FINAL RATE JSON
+                -----------------------------*/
+
+                $rateJson = [
+
+                    "ServiceId" => $g->id,
+                    "ServiceName" => $serviceName,
+                    "ServiceTypeName" => "Guide",
+
+                    "DestinationID" => $g->destinationId,
+                    "DestinationName" => $destinationName,
+
+                    "Data" => [
+                        [
+                            "Total" => count($rateDetails),
+                            "RateDetails" => $rateDetails
+                        ]
+                    ]
+                ];
+
+                /* -----------------------------
+                INSERT / UPDATE PGSQL
+                -----------------------------*/
+
                 DB::connection('pgsql')
                     ->table('guide.guide_service_master')
                     ->updateOrInsert(
-                        ['UniqueID' => $uniqueId],   // ✅ CORRECT KEY
+                        ['UniqueID' => $uniqueId],
                         [
                             'ServiceType' => 'Guide',
                             'Destination' => $g->destinationId,
                             'Guide_Porter_Service' => $serviceName,
-                            'RateJson' => null,
+
+                            // IMPORTANT FIX
+                            'RateJson' => json_encode(json_encode($rateJson, JSON_UNESCAPED_UNICODE)),
+
                             'CompanyId' => '',
                             'Default' => 'No',
                             'Status' => 1,
@@ -5214,13 +5340,84 @@ class DataSyncController extends Controller
                 'status' => true,
                 'message' => 'Guide Service Master synced successfully'
             ];
+
         } catch (\Exception $e) {
+
             return [
                 'status' => false,
                 'message' => $e->getMessage()
             ];
         }
     }
+
+
+    // public function guideMasterSync()
+    // {
+    //     try {
+
+    //         $guides = DB::connection('mysql')
+    //             ->table('tbl_guidesubcatmaster')
+    //             ->get();
+
+    //         foreach ($guides as $g) {
+
+    //             // 🔹 Destination
+    //             $destination = DB::connection('mysql')
+    //                 ->table('destinationmaster')
+    //                 ->where('id', $g->destinationId ?? null)
+    //                 ->first();
+
+    //             $destinationJson = json_encode([
+    //                 'id' => $destination->id ?? null,
+    //                 'Name' => $destination->name ?? ''
+    //             ], JSON_UNESCAPED_UNICODE);
+
+    //             // 🔹 Service Name (safe)
+    //             $serviceName =
+    //                 $g->guideName
+    //                 ?? $g->guidename
+    //                 ?? $g->subcatname
+    //                 ?? $g->name
+    //                 ?? 'Guide Service';
+
+    //             // 🔹 FORCE max 50 chars (DB-safe)
+    //             $serviceName = Str::limit(trim($serviceName), 50, '');
+
+    //             // 🔹 Unique ID (PRIMARY KEY replacement)
+    //             $uniqueId = 'GUIS' . str_pad($g->id, 4, '0', STR_PAD_LEFT);
+
+    //             // 🔹 Insert / Update
+    //             DB::connection('pgsql')
+    //                 ->table('guide.guide_service_master')
+    //                 ->updateOrInsert(
+    //                     ['UniqueID' => $uniqueId],   // ✅ CORRECT KEY
+    //                     [
+    //                         'ServiceType' => 'Guide',
+    //                         'Destination' => $g->destinationId,
+    //                         'Guide_Porter_Service' => $serviceName,
+    //                         'RateJson' => null,
+    //                         'CompanyId' => '',
+    //                         'Default' => 'No',
+    //                         'Status' => 1,
+    //                         'AddedBy' => 1,
+    //                         'UpdatedBy' => 0,
+    //                         'created_at' => now(),
+    //                         'updated_at' => now(),
+    //                     ]
+    //                 );
+    //         }
+
+    //         return [
+    //             'status' => true,
+    //             'message' => 'Guide Service Master synced successfully'
+    //         ];
+    //     } catch (\Exception $e) {
+    //         return [
+    //             'status' => false,
+    //             'message' => $e->getMessage()
+    //         ];
+    //     }
+    // }
 
 
 
