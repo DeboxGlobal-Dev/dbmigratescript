@@ -6724,9 +6724,9 @@ class DataSyncController extends Controller
                     ->updateOrInsert(
                         ['id' => $data->id], // match condition
                         [
-                            'Name' => $data->countryId ?? null,
+                            'Name' => $data->name ?? null,
                             'SetDefault' => $data->defaultAmenity ?? null,
-                            'Status' => (int) ($data->status ?? 1),
+                            'Status' => ($data->status == 1) ? "Active" : "Inactive",
                             'AddedBy' => 1,
                             'UpdatedBy' => 1,
                             'created_at' => now(),
