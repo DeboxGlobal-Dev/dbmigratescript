@@ -6709,4 +6709,43 @@ class DataSyncController extends Controller
         }
     }
 
+    public function syncAmenity()
+    {
+        try {
+
+            $oldData = DB::connection('mysql')
+                ->table('amenitiesmaster')
+                ->get();
+
+            foreach ($oldData as $data) {
+
+                DB::connection('pgsql')
+                    ->table('hotel.amenities_master')
+                    ->updateOrInsert(
+                        ['id' => $data->id], // match condition
+                        [
+                            'Name' => $data->countryId ?? null,
+                            'SetDefault' => $data->defaultAmenity ?? null,
+                            'Status' => (int) ($data->status ?? 1),
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Amenity Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
 }
