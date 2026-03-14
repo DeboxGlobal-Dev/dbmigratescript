@@ -24,6 +24,8 @@ Route::get('/markettypesync', [DataSyncController ::class, 'marketTypeSync']);
 Route::get('/nationalitysync', [DataSyncController ::class, 'nationalitySync']);
 Route::get('/syncagent', [DataSyncController ::class, 'syncAgent']);  /////check
 Route::get('/syncdirectclient', [DataSyncController ::class, 'syncDirectClient']);  /////check
+Route::get('/amenitysync', [DataSyncController ::class, 'syncAmenity']);  /////check
+
 
 ///////////////////need to merge both //////////////////
 Route::get('/agentcontactsync', [DataSyncController ::class, 'agentContactSync']);

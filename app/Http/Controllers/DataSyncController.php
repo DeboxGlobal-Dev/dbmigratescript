@@ -2581,6 +2581,12 @@ class DataSyncController extends Controller
                             $adult = (float) $r->adultCost;
                             $child = (float) $r->childCost;
 
+                            $taxId = $r->gstTax ?? '';
+                            $gst = $this->getGstDetails($taxId, 'Entrance', $adult);
+                            $gstValue = $gst['gstValue'];
+                            $gstSlabName = $gst['gstSlabName'];
+                            
+
                             $taxValue = 0; // old DB has no %
                             $totalCost = $adult + $child;
 
@@ -2603,8 +2609,8 @@ class DataSyncController extends Controller
                                 "ForeignerChildEntFee" => 0,
 
                                 "TaxSlabId" => (int) $r->gstTax,
-                                "TaxSlabName" => "",
-                                "TaxSlabValue" => $taxValue,
+                                "TaxSlabName" => $gstSlabName,
+                                "TaxSlabValue" => $gstValue,
 
                                 "TotalCost" => $totalCost,
 
@@ -3839,40 +3845,46 @@ class DataSyncController extends Controller
     //     }
     // }
 
-    private function getGstDetails(string $serviceType, float $amount): array
+    private function getGstDetails($id, string $serviceType, float $amount): array
     {
-        if ($amount <= 0) {
-            return [
-                'gstValue' => 0,
-                'gstSlabName' => '0%'
-            ];
-        }
+        // if ($amount <= 0) {
+        //     return [
+        //         'gstValue' => "",
+        //         'gstSlabName' => ''
+        //     ];
+        // }
 
         static $hasSlabColumns = null;
 
         if ($hasSlabColumns === null) {
-            $hasSlabColumns =
+        $hasSlabColumns =
                 Schema::connection('mysql')->hasColumn('gstmaster', 'priceRangeFrom') &&
                 Schema::connection('mysql')->hasColumn('gstmaster', 'priceRangeTo');
         }
 
-        $query = DB::connection('mysql')
+        // ✅ Step 1: Try matching with ID
+        $row = DB::connection('mysql')
             ->table('gstmaster')
-            ->where('serviceType', $serviceType)
+            ->where('id', $id)
             ->where('status', 1)
-            ->where('deletestatus', 0);
+            ->where('deletestatus', 0)
+            ->first();
 
-        if ($hasSlabColumns) {
-            $query->where('priceRangeFrom', '<=', (int) $amount)
-                ->where('priceRangeTo', '>=', (int) $amount);
-        }
-
-        $row = $query->first();
+        // ✅ Step 2: If not found, check price range
+        // if (!$row && $hasSlabColumns) {
+        //     $row = DB::connection('mysql')
+        //         ->table('gstmaster')
+        //         ->where('status', 1)
+        //         ->where('deletestatus', 0)
+        //         ->where('priceRangeFrom', '<=', (int) $amount)
+        //         ->where('priceRangeTo', '>=', (int) $amount)
+        //         ->first();
+        // }
 
         if (!$row) {
             return [
-                'gstValue' => 0,
-                'gstSlabName' => '0%'
+                'gstValue' => "",
+                'gstSlabName' => ''
             ];
         }
 
@@ -4084,10 +4096,12 @@ class DataSyncController extends Controller
                         $roomCost = (float) $room['cost'];
                         $roomId = $room['id'];
 
-                        $gst = $this->getGstDetails('Hotel', $roomCost);
+                        $roomGst = $r->roomGST ?? 0;
+                        $gst = $this->getGstDetails($roomGst, 'Hotel', $roomCost);
 
-                        $gstPercent = $gst['gstValue'];
-                        $gstSlabName = $gst['gstSlabName'];
+                        $gstPercent = (float) $gst['gstValue'];
+                        $gstPercent = (float) str_replace('%', '', $gst['gstValue']);
+                        $gstSlabName = $gst['gstSlabName'] ?? '';
                         $gstAmount = round(($roomCost * $gstPercent) / 100, 2);
                         $totalCost = round($roomCost + $gstAmount, 2);
 
@@ -4130,30 +4144,20 @@ class DataSyncController extends Controller
 
                     $mealSlabValue = null;
                     $mealSlabName = null;
+                    $mealSlabId = null;
                     foreach ($mealMap as $meal) {
 
                         $mealId = $meal['id'];
                         $mealName = $meal['name'];
                         $mealCost = (float) $meal['cost'];
                         $gstPercent = 0;
+ 
+                        $mealGst = $r->mealGST ?? 0;
+                        $gst = $this->getGstDetails($mealGst, 'Restaurant', $mealCost);
 
-                        // if ($mealCost > 0) {
-                        //     $gstSlab = DB::connection('mysql')
-                        //         ->table('gstmaster')
-                        //         ->where('serviceType', 'Restaurant')
-                        //         ->where('status', 1)
-                        //         ->where('deletestatus', 0)
-                        //         ->where('priceRangeFrom', '<=', (int)$mealCost)
-                        //         ->where('priceRangeTo', '>=', (int)$mealCost)
-                        //         ->first();
-
-                        //     if ($gstSlab) {
-                        //         $gstPercent = (float)$gstSlab->gstValue;
-                        //     }
-                        // }
-                        $gst = $this->getGstDetails('Restaurant', $mealCost);
-
-                        $gstPercent = $gst['gstValue'];
+                        $gstId = $r->mealGST ?? 0;
+                        $gstPercent = (float) $gst['gstValue'];
+                        $gstPercent = (float) str_replace('%', '', $gst['gstValue']);
                         $gstSlabName = $gst['gstSlabName'];
 
                         $gstAmount = round(($mealCost * $gstPercent) / 100, 2);
@@ -4161,7 +4165,7 @@ class DataSyncController extends Controller
 
                         $mealTotalCost += $totalCost;
 
-                        $mealSlabValue = $gstPercent;
+                        $mealSlabId = $gstId;
                         $mealSlabName = $gstSlabName;
 
                         $mealTypeArray[] = [
@@ -4212,8 +4216,8 @@ class DataSyncController extends Controller
 
                         "CurrencyId" => (int) $r->currencyId,
                         "CurrencyName" => "",
-                        "RoomTaxSlabId" => $roomTaxSlabName ?? '',
-                        "MealSlabId" => $mealSlabValue ?? '',
+                        "RoomTaxSlabId" => $roomTaxSlabName,
+                        "MealSlabId" => $mealSlabId ?? '',
                         "MealSlabName" => $mealSlabName ?? '',
                         "RoomBedType" => $roomBedTypeArray,
 
@@ -6892,6 +6896,45 @@ class DataSyncController extends Controller
             return [
                 'status' => true,
                 'message' => 'Driver Master Data synced successfully'
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function syncAmenity()
+    {
+        try {
+
+            $oldData = DB::connection('mysql')
+                ->table('amenitiesmaster')
+                ->get();
+
+            foreach ($oldData as $data) {
+
+                DB::connection('pgsql')
+                    ->table('hotel.amenities_master')
+                    ->updateOrInsert(
+                        ['id' => $data->id], // match condition
+                        [
+                            'Name' => $data->name ?? null,
+                            'SetDefault' => $data->defaultAmenity ?? null,
+                            'Status' => ($data->status == 1) ? "Active" : "Inactive",
+                            'AddedBy' => 1,
+                            'UpdatedBy' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+            }
+
+            return [
+                'status' => true,
+                'message' => 'Amenity Master Data synced successfully'
             ];
         } catch (\Exception $e) {
 
